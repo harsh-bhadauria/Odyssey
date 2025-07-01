@@ -7,4 +7,3 @@ data class HabitListUiState(
     val isLoading: Boolean = false,
     val error: String? = null
 )
-

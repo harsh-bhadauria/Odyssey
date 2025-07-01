@@ -33,6 +33,7 @@ fun HabitListScreen(
                 CircularProgressIndicator()
             }
         }
+
         uiState.error != null -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
@@ -41,6 +42,7 @@ fun HabitListScreen(
                 )
             }
         }
+
         else -> {
             HabitListUI(uiState)
         }

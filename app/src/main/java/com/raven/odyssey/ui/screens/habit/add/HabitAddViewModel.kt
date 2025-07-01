@@ -2,15 +2,16 @@ package com.raven.odyssey.ui.screens.habit.add
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.raven.odyssey.data.entity.HabitEntity
-import com.raven.odyssey.data.entity.HabitFrequencyType
+import com.raven.odyssey.data.entity.toEntity
+import com.raven.odyssey.domain.model.Habit
 import com.raven.odyssey.domain.model.HabitFrequency
+import com.raven.odyssey.domain.model.HabitType
 import com.raven.odyssey.domain.repository.HabitRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
 
@@ -37,8 +38,13 @@ class HabitAddViewModel @Inject constructor(
         updateUiState(isSaving = true)
         viewModelScope.launch {
             habitRepository.insertHabit(
-                HabitEntity(name = _uiState.value.name, frequencyType = HabitFrequencyType.DAILY,
-                    description = _uiState.value.description)
+                Habit(
+                    name = _uiState.value.name,
+                    description = _uiState.value.description,
+                    isActive = true,
+                    frequency = HabitFrequency.Daily,
+                    type = HabitType.Binary
+                ).toEntity()
             )
             updateUiState(isSaving = false)
             onSaved()

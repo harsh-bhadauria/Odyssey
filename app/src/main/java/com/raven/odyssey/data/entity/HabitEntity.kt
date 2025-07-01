@@ -4,28 +4,46 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.raven.odyssey.domain.model.Habit
 import com.raven.odyssey.domain.model.HabitFrequency
-
-enum class HabitFrequencyType {
-    DAILY,
-    WEEKLY,
-    CUSTOM
-}
+import com.raven.odyssey.domain.model.HabitType
 
 @Entity(tableName = "habits")
 data class HabitEntity(
+
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+
     val name: String,
     val description: String? = null,
     val isActive: Boolean = true,
-    val frequencyType: HabitFrequencyType,
-    val frequencyValue: Int = 1,
+
+    val frequencyType: String,
+    val intervalDays: Int? = null,
+
+    val habitType: String,
+    val target: Int? = null,
+    val unit: String? = null
 )
 
-fun HabitEntity.toDomainModel(): Habit {
-    val frequency = when (frequencyType) {
-        HabitFrequencyType.DAILY -> HabitFrequency.Daily(frequencyValue)
-        HabitFrequencyType.WEEKLY -> HabitFrequency.Weekly(frequencyValue)
-        HabitFrequencyType.CUSTOM -> HabitFrequency.Custom(frequencyValue)
+
+fun Habit.toEntity(): HabitEntity {
+    val (freqType, intervalDays) = when (frequency) {
+        is HabitFrequency.Daily -> "Daily" to null
+        is HabitFrequency.Weekly -> "Weekly" to null
+        is HabitFrequency.Custom -> "Custom" to frequency.intervalDays
     }
-    return Habit(id, name, description, isActive, frequency)
+
+    val (typeStr, unitStr, targetInt) = when (type) {
+        is HabitType.Binary -> Triple("Binary", null, null)
+        is HabitType.Measurable -> Triple("Measurable", type.unit, type.target)
+    }
+
+    return HabitEntity(
+        name = name,
+        description = description,
+        isActive = isActive,
+        frequencyType = freqType,
+        intervalDays = intervalDays,
+        habitType = typeStr,
+        unit = unitStr,
+        target = targetInt
+    )
 }
