@@ -18,4 +18,5 @@ data class Habit(
     val isActive: Boolean = true,
     val frequency: HabitFrequency = HabitFrequency.Daily,
     val type: HabitType = HabitType.Binary,
+    val nextDue: Long,
 )

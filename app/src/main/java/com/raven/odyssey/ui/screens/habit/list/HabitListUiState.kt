@@ -1,9 +1,9 @@
 package com.raven.odyssey.ui.screens.habit.list
 
-import com.raven.odyssey.data.entity.HabitEntity
+import com.raven.odyssey.domain.model.Habit
 
 data class HabitListUiState(
-    val habits: List<HabitEntity> = emptyList(),
+    val habits: List<Habit> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )

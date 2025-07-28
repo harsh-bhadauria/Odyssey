@@ -1,7 +1,9 @@
 package com.raven.odyssey.di
 
 import android.content.Context
+import com.raven.odyssey.data.notification.HabitNotificationSchedulerImpl
 import com.raven.odyssey.data.notification.NotificationSchedulerImpl
+import com.raven.odyssey.domain.notification.HabitNotificationScheduler
 import com.raven.odyssey.domain.notification.NotificationScheduler
 import dagger.Module
 import dagger.Provides
@@ -18,5 +20,10 @@ object NotificationModule {
     fun provideNotificationScheduler(
         @ApplicationContext context: Context
     ): NotificationScheduler = NotificationSchedulerImpl(context)
-}
 
+    @Provides
+    @Singleton
+    fun provideHabitNotificationScheduler(
+        @ApplicationContext context: Context
+    ): HabitNotificationScheduler = HabitNotificationSchedulerImpl(context)
+}

@@ -70,7 +70,9 @@ fun AppNavDisplay() {
                     )
                 }
                 entry<Screen.HabitAdd> {
-                   HabitAddScreen()
+                   HabitAddScreen(
+                       onHabitAdded = { backstack.removeLastOrNull() }
+                   )
                 }
             }
         )

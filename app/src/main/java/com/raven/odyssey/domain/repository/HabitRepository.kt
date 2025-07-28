@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface HabitRepository {
     fun getAllHabits(): Flow<List<HabitEntity>>
+    fun getHabitsForToday(time: Long): Flow<List<HabitEntity>>
     suspend fun insertHabit(habit: HabitEntity): Long
     suspend fun updateHabit(habit: HabitEntity)
     suspend fun deleteHabit(habit: HabitEntity)

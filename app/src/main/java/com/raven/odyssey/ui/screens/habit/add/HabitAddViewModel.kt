@@ -6,17 +6,20 @@ import com.raven.odyssey.data.entity.toEntity
 import com.raven.odyssey.domain.model.Habit
 import com.raven.odyssey.domain.model.HabitFrequency
 import com.raven.odyssey.domain.model.HabitType
+import com.raven.odyssey.domain.notification.HabitNotificationScheduler
 import com.raven.odyssey.domain.repository.HabitRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
 
 class HabitAddViewModel @Inject constructor(
-    private val habitRepository: HabitRepository
+    private val habitRepository: HabitRepository,
+    private val notificationScheduler: HabitNotificationScheduler
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HabitAddUiState())
     val uiState: StateFlow<HabitAddUiState> = _uiState
@@ -24,30 +27,60 @@ class HabitAddViewModel @Inject constructor(
     fun updateUiState(
         name: String? = null,
         description: String? = null,
-        isSaving: Boolean? = null
+        hour: Int? = null,
+        minute: Int? = null,
+        frequency: HabitFrequency? = null,
+        type: HabitType? = null,
+        target: Int? = null,
+        unit: String? = null,
+        intervalDays: Int? = null,
     ) {
         _uiState.value = _uiState.value.copy(
             name = name ?: _uiState.value.name,
             description = description ?: _uiState.value.description,
-            isSaving = isSaving ?: _uiState.value.isSaving
+            hour = hour ?: _uiState.value.hour,
+            minute = minute ?: _uiState.value.minute,
+            frequency = frequency ?: _uiState.value.frequency,
+            type = type ?: _uiState.value.type,
+            target = target ?: _uiState.value.target,
+            unit = unit ?: _uiState.value.unit,
+            intervalDays = intervalDays ?: _uiState.value.intervalDays,
         )
     }
 
-    fun saveHabit(onSaved: () -> Unit) {
+    fun addHabit(onAdded: () -> Unit) {
         if (_uiState.value.name.isBlank()) return
-        updateUiState(isSaving = true)
         viewModelScope.launch {
-            habitRepository.insertHabit(
-                Habit(
-                    name = _uiState.value.name,
-                    description = _uiState.value.description,
-                    isActive = true,
-                    frequency = HabitFrequency.Daily,
-                    type = HabitType.Binary
-                ).toEntity()
+            val calendar = Calendar.getInstance()
+            calendar.set(Calendar.HOUR_OF_DAY, _uiState.value.hour ?: 0)
+            calendar.set(Calendar.MINUTE, _uiState.value.minute ?: 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            val nextDue = calendar.timeInMillis
+
+            val frequency = when (_uiState.value.frequency) {
+                is HabitFrequency.Custom -> HabitFrequency.Custom(_uiState.value.intervalDays ?: 1)
+                else -> _uiState.value.frequency
+            }
+            val type = when (_uiState.value.type) {
+                is HabitType.Measurable -> HabitType.Measurable(
+                    target = _uiState.value.target ?: 1,
+                    unit = _uiState.value.unit ?: ""
+                )
+                else -> _uiState.value.type
+            }
+            val habit = Habit(
+                name = _uiState.value.name,
+                description = _uiState.value.description,
+                isActive = true,
+                frequency = frequency,
+                type = type,
+                nextDue = nextDue
             )
-            updateUiState(isSaving = false)
-            onSaved()
+            val id = habitRepository.insertHabit(habit.toEntity())
+            val habitWithId = habit.copy(id = id)
+            notificationScheduler.scheduleNotification(habitWithId)
+            onAdded()
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.raven.odyssey.ui.screens.todo.list
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -24,7 +25,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.raven.odyssey.data.entity.TodoEntity
+import com.raven.odyssey.domain.model.Todo
 import com.raven.odyssey.ui.theme.OdysseyTheme
 
 @Composable
@@ -56,7 +57,7 @@ fun TodoListScreen(
 }
 
 @Composable
-fun TodoListUI(uiState: TodoListUiState, onLongPress: (TodoEntity) -> Unit) {
+fun TodoListUI(uiState: TodoListUiState, onLongPress: (Todo) -> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -67,8 +68,9 @@ fun TodoListUI(uiState: TodoListUiState, onLongPress: (TodoEntity) -> Unit) {
     }
 }
 
+@SuppressLint("DefaultLocale")
 @Composable
-fun TodoCard(todo: TodoEntity, onLongPress: (TodoEntity) -> Unit) {
+fun TodoCard(todo: Todo, onLongPress: (Todo) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -79,14 +81,22 @@ fun TodoCard(todo: TodoEntity, onLongPress: (TodoEntity) -> Unit) {
             )
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.padding(16.dp).weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .weight(1f)
+            ) {
 
-                Text(text = todo.title,
+                Text(
+                    text = todo.title,
                     fontSize = 20.sp,
-                    modifier = Modifier.padding(bottom = 8.dp))
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
 
 //                if (!todo.description.isNullOrEmpty()) {
 //                    Text(
@@ -95,7 +105,7 @@ fun TodoCard(todo: TodoEntity, onLongPress: (TodoEntity) -> Unit) {
 //                    )
 //                }
             }
-            if(todo.hour != null && todo.minute != null) {
+            if (todo.hour != null && todo.minute != null) {
                 Text(
                     text = String.format("%02d:%02d", todo.hour, todo.minute),
                     modifier = Modifier.padding(16.dp),
@@ -111,7 +121,7 @@ fun TodoCard(todo: TodoEntity, onLongPress: (TodoEntity) -> Unit) {
 fun TodoCardPreview() {
     OdysseyTheme {
         TodoCard(
-            todo = TodoEntity(
+            todo = Todo(
                 1,
                 "Sample Todo",
                 "This is a sample description",
@@ -131,14 +141,14 @@ fun TodoListPreview() {
         Scaffold {
             it
             val sampleTodos = listOf(
-                TodoEntity(
+                Todo(
                     1,
                     "Sample Todo 1",
                     "This is a sample description",
                     5, 7, false,
                     1234
                 ),
-                TodoEntity(2, "Sample Todo 2", null, 10, 50, true, 1002)
+                Todo(2, "Sample Todo 2", null, 10, 50, true, 1002)
             )
             val uiState = TodoListUiState(todos = sampleTodos, isLoading = false)
 

@@ -6,13 +6,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import java.util.Calendar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HabitAddScreen(
     viewModel: HabitAddViewModel = hiltViewModel(),
     onHabitAdded: (() -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val timePickerDialogVisible = remember { mutableStateOf(false) }
+    val calendar = Calendar.getInstance()
+    val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+    val currentMinute = calendar.get(Calendar.MINUTE) + 1
+    val timePickerState = remember { androidx.compose.material3.TimePickerState(currentHour, currentMinute, false) }
 
     Column(
         modifier = Modifier
@@ -33,20 +40,139 @@ fun HabitAddScreen(
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(24.dp))
+
+        if (timePickerDialogVisible.value) {
+            AlertDialog(
+                onDismissRequest = { timePickerDialogVisible.value = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.updateUiState(
+                            hour = timePickerState.hour,
+                            minute = timePickerState.minute
+                        )
+                        timePickerDialogVisible.value = false
+                    }) {
+                        Text("OK")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { timePickerDialogVisible.value = false }) {
+                        Text("Cancel")
+                    }
+                },
+                title = { Text("Pick Time") },
+                text = {
+                    androidx.compose.material3.TimePicker(state = timePickerState)
+                }
+            )
+        }
+
+        Button(
+            onClick = { timePickerDialogVisible.value = true },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                if (uiState.hour != null && uiState.minute != null)
+                    String.format("Time: %02d:%02d", uiState.hour, uiState.minute)
+                else
+                    "Pick Time"
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Frequency selection
+        var freqExpanded by remember { mutableStateOf(false) }
+        Box {
+            OutlinedButton(onClick = { freqExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    when (uiState.frequency) {
+                        is com.raven.odyssey.domain.model.HabitFrequency.Daily -> "Daily"
+                        is com.raven.odyssey.domain.model.HabitFrequency.Weekly -> "Weekly"
+                        is com.raven.odyssey.domain.model.HabitFrequency.Custom -> "Custom"
+                    }
+                )
+            }
+            DropdownMenu(expanded = freqExpanded, onDismissRequest = { freqExpanded = false }) {
+                DropdownMenuItem(text = { Text("Daily") }, onClick = {
+                    viewModel.updateUiState(frequency = com.raven.odyssey.domain.model.HabitFrequency.Daily, intervalDays = null)
+                    freqExpanded = false
+                })
+                DropdownMenuItem(text = { Text("Weekly") }, onClick = {
+                    viewModel.updateUiState(frequency = com.raven.odyssey.domain.model.HabitFrequency.Weekly, intervalDays = null)
+                    freqExpanded = false
+                })
+                DropdownMenuItem(text = { Text("Custom") }, onClick = {
+                    viewModel.updateUiState(frequency = com.raven.odyssey.domain.model.HabitFrequency.Custom(uiState.intervalDays ?: 1))
+                    freqExpanded = false
+                })
+            }
+        }
+        if (uiState.frequency is com.raven.odyssey.domain.model.HabitFrequency.Custom) {
+            OutlinedTextField(
+                value = uiState.intervalDays?.toString() ?: "",
+                onValueChange = { value ->
+                    val intVal = value.toIntOrNull() ?: 1
+                    viewModel.updateUiState(intervalDays = intVal, frequency = com.raven.odyssey.domain.model.HabitFrequency.Custom(intVal))
+                },
+                label = { Text("Interval Days") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Type selection
+        var typeExpanded by remember { mutableStateOf(false) }
+        Box {
+            OutlinedButton(onClick = { typeExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    when (uiState.type) {
+                        is com.raven.odyssey.domain.model.HabitType.Binary -> "Binary"
+                        is com.raven.odyssey.domain.model.HabitType.Measurable -> "Measurable"
+                    }
+                )
+            }
+            DropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
+                DropdownMenuItem(text = { Text("Binary") }, onClick = {
+                    viewModel.updateUiState(type = com.raven.odyssey.domain.model.HabitType.Binary, target = null, unit = null)
+                    typeExpanded = false
+                })
+                DropdownMenuItem(text = { Text("Measurable") }, onClick = {
+                    viewModel.updateUiState(type = com.raven.odyssey.domain.model.HabitType.Measurable(uiState.target ?: 1, uiState.unit ?: ""))
+                    typeExpanded = false
+                })
+            }
+        }
+        if (uiState.type is com.raven.odyssey.domain.model.HabitType.Measurable) {
+            OutlinedTextField(
+                value = uiState.target?.toString() ?: "",
+                onValueChange = { value ->
+                    val intVal = value.toIntOrNull() ?: 1
+                    viewModel.updateUiState(target = intVal, type = com.raven.odyssey.domain.model.HabitType.Measurable(intVal, uiState.unit ?: ""))
+                },
+                label = { Text("Target") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = uiState.unit ?: "",
+                onValueChange = { value ->
+                    viewModel.updateUiState(unit = value, type = com.raven.odyssey.domain.model.HabitType.Measurable(uiState.target ?: 1, value))
+                },
+                label = { Text("Unit") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        Spacer(modifier = Modifier.height(24.dp))
         Button(
             onClick = {
-                viewModel.saveHabit {
+                viewModel.addHabit {
                     onHabitAdded?.invoke()
                 }
             },
-            enabled = uiState.name.isNotBlank() && !uiState.isSaving,
+            enabled = uiState.name.isNotBlank(),
             modifier = Modifier.fillMaxWidth()
         ) {
-            if (uiState.isSaving) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-            } else {
-                Text("Add Habit")
-            }
+            Text("Add Habit")
         }
     }
 }

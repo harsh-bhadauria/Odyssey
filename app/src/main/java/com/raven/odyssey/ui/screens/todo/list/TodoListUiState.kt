@@ -1,9 +1,9 @@
 package com.raven.odyssey.ui.screens.todo.list
 
-import com.raven.odyssey.data.entity.TodoEntity
+import com.raven.odyssey.domain.model.Todo
 
 data class TodoListUiState(
-    val todos: List<TodoEntity> = emptyList(),
+    val todos: List<Todo> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )

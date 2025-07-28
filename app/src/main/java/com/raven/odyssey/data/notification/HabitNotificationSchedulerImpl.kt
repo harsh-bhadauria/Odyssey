@@ -8,33 +8,27 @@ import android.content.Context.ALARM_SERVICE
 import android.content.Intent
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationManagerCompat
-import com.raven.odyssey.domain.model.Todo
-import com.raven.odyssey.domain.notification.NotificationScheduler
+import com.raven.odyssey.domain.model.Habit
+import com.raven.odyssey.domain.notification.HabitNotificationScheduler
 import java.util.Calendar
 
-class NotificationSchedulerImpl(private val context: Context) : NotificationScheduler {
+class HabitNotificationSchedulerImpl(
+    private val context: Context
+) : HabitNotificationScheduler {
     @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
-    override fun scheduleNotification(todo: Todo) {
-        val hour = todo.hour ?: return
-        val minute = todo.minute ?: return
+    override fun scheduleNotification(habit: Habit) {
+        val nextDue = habit.nextDue
         val calendar = Calendar.getInstance().apply {
-            timeInMillis = System.currentTimeMillis()
-            set(Calendar.HOUR_OF_DAY, hour)
-            set(Calendar.MINUTE, minute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-            if (before(Calendar.getInstance())) {
-                add(Calendar.DATE, 1)
-            }
+            timeInMillis = nextDue
         }
         val intent = Intent(context, NotificationReceiver::class.java).apply {
-            putExtra("todo_id", todo.id)
-            putExtra("title", todo.title)
-            putExtra("description", todo.description)
+            putExtra("habit_id", habit.id)
+            putExtra("title", habit.name)
+            putExtra("description", habit.description)
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            todo.id.toInt(),
+            habit.id.toInt(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -46,18 +40,18 @@ class NotificationSchedulerImpl(private val context: Context) : NotificationSche
         )
     }
 
-    override fun cancelNotification(todoId: Long) {
+    @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
+    override fun cancelNotification(habitId: Long) {
         val intent = Intent(context, NotificationReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            todoId.toInt(),
+            habitId.toInt(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val alarmManager = context.getSystemService(ALARM_SERVICE) as AlarmManager
         alarmManager.cancel(pendingIntent)
 
-        NotificationManagerCompat.from(context).cancel(todoId.toInt())
+        NotificationManagerCompat.from(context).cancel(habitId.toInt())
     }
-
 }

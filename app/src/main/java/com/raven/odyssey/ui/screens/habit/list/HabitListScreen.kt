@@ -1,7 +1,9 @@
 package com.raven.odyssey.ui.screens.habit.list
 
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,10 +18,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.raven.odyssey.data.entity.HabitEntity
+import com.raven.odyssey.domain.model.Habit
+import com.raven.odyssey.domain.model.HabitFrequency
+import com.raven.odyssey.domain.model.HabitType
+import java.text.SimpleDateFormat
+import java.util.Date
 
 @Composable
 fun HabitListScreen(
@@ -44,28 +51,80 @@ fun HabitListScreen(
         }
 
         else -> {
-            HabitListUI(uiState)
+            HabitListUI(uiState, onLongPress = { habit -> viewModel.completeHabit(habit) })
         }
     }
 }
 
 @Composable
-fun HabitListUI(uiState: HabitListUiState) {
+fun HabitListUI(uiState: HabitListUiState, onLongPress: (Habit) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize()
     ) {
         items(uiState.habits) { habit ->
-            HabitCard(habit)
+            HabitCard(habit, onLongPress)
         }
     }
 }
 
 @Composable
-fun HabitCard(habit: HabitEntity) {
+fun HabitCard(habit: Habit, onLongPress: (Habit) -> Unit) {
+    when (habit.type) {
+        is HabitType.Binary -> BinaryHabitCard(habit, onLongPress)
+        is HabitType.Measurable -> MeasurableHabitCard(habit, onLongPress)
+    }
+}
+
+@Composable
+fun BinaryHabitCard(habit: Habit, onLongPress: (Habit) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
+            .combinedClickable(
+                onClick = {},
+                onLongClick = { onLongPress(habit) }
+            )
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .weight(0.8f)
+            ) {
+                Text(
+                    text = habit.name,
+                    fontSize = 20.sp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                if (!habit.description.isNullOrEmpty()) {
+                    Text(
+                        text = habit.description,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+            Text(
+                text = SimpleDateFormat("HH:mm").format(Date(habit.nextDue)),
+                fontSize = 20.sp,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+
+    }
+}
+
+@Composable
+fun MeasurableHabitCard(habit: Habit, onLongPress: (Habit) -> Unit) {
+    val measurable = habit.type as HabitType.Measurable
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .combinedClickable(
+                onClick = {},
+                onLongClick = { onLongPress(habit) }
+            )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -79,6 +138,28 @@ fun HabitCard(habit: HabitEntity) {
                     fontSize = 12.sp
                 )
             }
+            Text(
+                text = "Target: ${measurable.target} ${measurable.unit}",
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 8.dp)
+            )
         }
     }
+}
+
+@Preview
+@Composable
+fun HabitCardPreview() {
+    HabitCard(
+        habit = Habit(
+            id = 1,
+            name = "Drink Water",
+            description = "Stay hydrated throughout the day",
+            isActive = true,
+            frequency = HabitFrequency.Daily,
+            type = HabitType.Binary,
+            nextDue = System.currentTimeMillis() + 1000
+        ),
+        onLongPress = {}
+    )
 }
