@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +31,7 @@ import java.util.Date
 
 @Composable
 fun HabitListScreen(
+    onHabitDebugClicked: () -> Unit,
     viewModel: HabitListViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -51,20 +53,33 @@ fun HabitListScreen(
         }
 
         else -> {
-            HabitListUI(uiState, onLongPress = { habit -> viewModel.completeHabit(habit) })
+            HabitListUI(
+                uiState, onLongPress = { habit -> viewModel.completeHabit(habit) },
+                onHabitDebugClicked = onHabitDebugClicked
+            )
         }
     }
 }
 
 @Composable
-fun HabitListUI(uiState: HabitListUiState, onLongPress: (Habit) -> Unit) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        items(uiState.habits) { habit ->
-            HabitCard(habit, onLongPress)
+fun HabitListUI(
+    uiState: HabitListUiState,
+    onLongPress: (Habit) -> Unit,
+    onHabitDebugClicked: () -> Unit
+) {
+    Column {
+        Button(onClick = onHabitDebugClicked) {
+            Text("Habit Debug")
+        }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(uiState.habits) { habit ->
+                HabitCard(habit, onLongPress)
+            }
         }
     }
+
 }
 
 @Composable

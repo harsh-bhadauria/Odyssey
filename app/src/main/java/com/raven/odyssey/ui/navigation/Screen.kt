@@ -5,4 +5,5 @@ sealed class Screen {
     object HabitAdd : Screen()
     object TodoList : Screen()
     object TodoAdd : Screen()
+    object HabitDebug : Screen()
 }

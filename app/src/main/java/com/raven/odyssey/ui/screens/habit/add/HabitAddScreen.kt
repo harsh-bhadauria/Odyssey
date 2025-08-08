@@ -19,7 +19,7 @@ fun HabitAddScreen(
     val calendar = Calendar.getInstance()
     val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
     val currentMinute = calendar.get(Calendar.MINUTE) + 1
-    val timePickerState = remember { androidx.compose.material3.TimePickerState(currentHour, currentMinute, false) }
+    val timePickerState = remember { TimePickerState(currentHour, currentMinute, false) }
 
     Column(
         modifier = Modifier
@@ -41,46 +41,6 @@ fun HabitAddScreen(
         )
         Spacer(modifier = Modifier.height(24.dp))
 
-        if (timePickerDialogVisible.value) {
-            AlertDialog(
-                onDismissRequest = { timePickerDialogVisible.value = false },
-                confirmButton = {
-                    TextButton(onClick = {
-                        viewModel.updateUiState(
-                            hour = timePickerState.hour,
-                            minute = timePickerState.minute
-                        )
-                        timePickerDialogVisible.value = false
-                    }) {
-                        Text("OK")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { timePickerDialogVisible.value = false }) {
-                        Text("Cancel")
-                    }
-                },
-                title = { Text("Pick Time") },
-                text = {
-                    androidx.compose.material3.TimePicker(state = timePickerState)
-                }
-            )
-        }
-
-        Button(
-            onClick = { timePickerDialogVisible.value = true },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                if (uiState.hour != null && uiState.minute != null)
-                    String.format("Time: %02d:%02d", uiState.hour, uiState.minute)
-                else
-                    "Pick Time"
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
         // Frequency selection
         var freqExpanded by remember { mutableStateOf(false) }
         Box {
@@ -99,7 +59,7 @@ fun HabitAddScreen(
                     freqExpanded = false
                 })
                 DropdownMenuItem(text = { Text("Weekly") }, onClick = {
-                    viewModel.updateUiState(frequency = com.raven.odyssey.domain.model.HabitFrequency.Weekly, intervalDays = null)
+                    viewModel.updateUiState(frequency = com.raven.odyssey.domain.model.HabitFrequency.Weekly, intervalDays = null, hour = null, minute = null)
                     freqExpanded = false
                 })
                 DropdownMenuItem(text = { Text("Custom") }, onClick = {
@@ -120,6 +80,48 @@ fun HabitAddScreen(
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Only show time picker for Daily and Custom
+        if (uiState.frequency !is com.raven.odyssey.domain.model.HabitFrequency.Weekly) {
+            if (timePickerDialogVisible.value) {
+                AlertDialog(
+                    onDismissRequest = { timePickerDialogVisible.value = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.updateUiState(
+                                hour = timePickerState.hour,
+                                minute = timePickerState.minute
+                            )
+                            timePickerDialogVisible.value = false
+                        }) {
+                            Text("OK")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { timePickerDialogVisible.value = false }) {
+                            Text("Cancel")
+                        }
+                    },
+                    title = { Text("Pick Time") },
+                    text = {
+                        TimePicker(state = timePickerState)
+                    }
+                )
+            }
+
+            Button(
+                onClick = { timePickerDialogVisible.value = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    if (uiState.hour != null && uiState.minute != null)
+                        String.format("Time: %02d:%02d", uiState.hour, uiState.minute)
+                    else
+                        "Pick Time"
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         // Type selection
         var typeExpanded by remember { mutableStateOf(false) }

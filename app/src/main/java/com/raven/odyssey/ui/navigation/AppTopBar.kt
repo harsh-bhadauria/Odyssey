@@ -16,6 +16,7 @@ fun AppTopBar(
         is Screen.TodoAdd -> "Add Todo"
         is Screen.HabitList -> "Odyssey"
         is Screen.HabitAdd -> "Add Habit"
+        else -> "Odyssey"
     }
     CenterAlignedTopAppBar(
         title = {

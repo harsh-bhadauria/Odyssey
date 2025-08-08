@@ -9,4 +9,5 @@ interface HabitRepository {
     suspend fun insertHabit(habit: HabitEntity): Long
     suspend fun updateHabit(habit: HabitEntity)
     suspend fun deleteHabit(habit: HabitEntity)
+    fun getDueHabits(currentTime: Long): Flow<List<HabitEntity>>
 }

@@ -14,6 +14,7 @@ import androidx.navigation3.runtime.entry
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.raven.odyssey.ui.screens.habit.add.HabitAddScreen
+import com.raven.odyssey.ui.screens.habit.debug.HabitDebugScreen
 import com.raven.odyssey.ui.screens.habit.list.HabitListScreen
 import com.raven.odyssey.ui.screens.todo.add.TodoAddScreen
 import com.raven.odyssey.ui.screens.todo.list.TodoListScreen
@@ -63,17 +64,23 @@ fun AppNavDisplay() {
             modifier = Modifier.padding(it),
             entryProvider = entryProvider {
                 entry<Screen.TodoList> { TodoListScreen() }
-                entry<Screen.HabitList> { HabitListScreen() }
+                entry<Screen.HabitList> {
+                    HabitListScreen(
+                        onHabitDebugClicked = { backstack.add(Screen.HabitDebug) }
+                    )
+                }
                 entry<Screen.TodoAdd> {
                     TodoAddScreen(
                         onTodoAdded = { backstack.removeLastOrNull() }
                     )
                 }
                 entry<Screen.HabitAdd> {
-                   HabitAddScreen(
-                       onHabitAdded = { backstack.removeLastOrNull() }
-                   )
+                    HabitAddScreen(
+                        onHabitAdded = { backstack.removeLastOrNull() }
+                    )
                 }
+
+                entry<Screen.HabitDebug> { HabitDebugScreen() }
             }
         )
     }
