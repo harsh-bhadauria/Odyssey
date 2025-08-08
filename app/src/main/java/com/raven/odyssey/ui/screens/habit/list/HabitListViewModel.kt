@@ -116,4 +116,38 @@ class HabitListViewModel @Inject constructor(
             }
         }
     }
+
+    fun incrementProgress(habit: Habit) {
+        val measurable = habit.type
+        if (measurable is com.raven.odyssey.domain.model.HabitType.Measurable) {
+            val newProgress = (measurable.progress + 1).coerceAtMost(measurable.target)
+            val updatedHabit = habit.copy(type = measurable.copy(progress = newProgress))
+            viewModelScope.launch {
+                habitRepository.updateHabit(updatedHabit.toEntity())
+                // Update UI state
+                _uiState.value = _uiState.value.copy(
+                    habits = _uiState.value.habits.map {
+                        if (it.id == habit.id) updatedHabit else it
+                    }
+                )
+            }
+        }
+    }
+
+    fun decrementProgress(habit: Habit) {
+        val measurable = habit.type
+        if (measurable is com.raven.odyssey.domain.model.HabitType.Measurable) {
+            val newProgress = (measurable.progress - 1).coerceAtLeast(0)
+            val updatedHabit = habit.copy(type = measurable.copy(progress = newProgress))
+            viewModelScope.launch {
+                habitRepository.updateHabit(updatedHabit.toEntity())
+                // Update UI state
+                _uiState.value = _uiState.value.copy(
+                    habits = _uiState.value.habits.map {
+                        if (it.id == habit.id) updatedHabit else it
+                    }
+                )
+            }
+        }
+    }
 }

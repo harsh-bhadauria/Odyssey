@@ -1,6 +1,7 @@
 package com.raven.odyssey.ui.screens.habit.list
 
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,7 +13,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -28,6 +31,7 @@ import com.raven.odyssey.domain.model.HabitFrequency
 import com.raven.odyssey.domain.model.HabitType
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 @Composable
 fun HabitListScreen(
@@ -55,7 +59,9 @@ fun HabitListScreen(
         else -> {
             HabitListUI(
                 uiState, onLongPress = { habit -> viewModel.completeHabit(habit) },
-                onHabitDebugClicked = onHabitDebugClicked
+                onHabitDebugClicked = onHabitDebugClicked,
+                onIncrement = { viewModel.incrementProgress(it) },
+                onDecrement = { viewModel.decrementProgress(it) }
             )
         }
     }
@@ -65,28 +71,40 @@ fun HabitListScreen(
 fun HabitListUI(
     uiState: HabitListUiState,
     onLongPress: (Habit) -> Unit,
-    onHabitDebugClicked: () -> Unit
+    onHabitDebugClicked: () -> Unit,
+    onIncrement: (Habit) -> Unit = {},
+    onDecrement: (Habit) -> Unit = {}
 ) {
     Column {
-        Button(onClick = onHabitDebugClicked) {
-            Text("Habit Debug")
-        }
+
         LazyColumn(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             items(uiState.habits) { habit ->
-                HabitCard(habit, onLongPress)
+                HabitCard(habit, onLongPress, onIncrement, onDecrement)
+            }
+            item {
+                Button(onClick = onHabitDebugClicked) {
+                    Text("Habit Debug")
+                }
             }
         }
+
     }
 
 }
 
 @Composable
-fun HabitCard(habit: Habit, onLongPress: (Habit) -> Unit) {
+fun HabitCard(
+    habit: Habit,
+    onLongPress: (Habit) -> Unit,
+    onIncrement: (Habit) -> Unit,
+    onDecrement: (Habit) -> Unit
+) {
     when (habit.type) {
         is HabitType.Binary -> BinaryHabitCard(habit, onLongPress)
-        is HabitType.Measurable -> MeasurableHabitCard(habit, onLongPress)
+        is HabitType.Measurable -> MeasurableHabitCard(habit, onLongPress, onIncrement, onDecrement)
     }
 }
 
@@ -120,7 +138,7 @@ fun BinaryHabitCard(habit: Habit, onLongPress: (Habit) -> Unit) {
                 }
             }
             Text(
-                text = SimpleDateFormat("HH:mm").format(Date(habit.nextDue)),
+                text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(habit.nextDue)),
                 fontSize = 20.sp,
                 modifier = Modifier.padding(16.dp)
             )
@@ -130,8 +148,14 @@ fun BinaryHabitCard(habit: Habit, onLongPress: (Habit) -> Unit) {
 }
 
 @Composable
-fun MeasurableHabitCard(habit: Habit, onLongPress: (Habit) -> Unit) {
+fun MeasurableHabitCard(
+    habit: Habit,
+    onLongPress: (Habit) -> Unit,
+    onIncrement: (Habit) -> Unit,
+    onDecrement: (Habit) -> Unit
+) {
     val measurable = habit.type as HabitType.Measurable
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -153,16 +177,39 @@ fun MeasurableHabitCard(habit: Habit, onLongPress: (Habit) -> Unit) {
                     fontSize = 12.sp
                 )
             }
-            Text(
-                text = "Target: ${measurable.target} ${measurable.unit}",
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 8.dp)
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Button(onClick = { onDecrement(habit) }) {
+                    Text("-")
+                }
+                Text(
+                    text = "${measurable.progress} / ${measurable.target} ${measurable.unit}",
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                Button(onClick = { onIncrement(habit) }) {
+                    Text("+")
+                }
+            }
+            val progress = measurable.progress.toFloat() / measurable.target.toFloat()
+            LinearProgressIndicator(
+                progress = { progress.coerceIn(0f, 1f) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                color = ProgressIndicatorDefaults.linearColor,
+                trackColor = ProgressIndicatorDefaults.linearTrackColor,
+                strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
             )
         }
     }
 }
 
-@Preview
+@Preview(showBackground = true)
 @Composable
 fun HabitCardPreview() {
     HabitCard(
@@ -172,9 +219,15 @@ fun HabitCardPreview() {
             description = "Stay hydrated throughout the day",
             isActive = true,
             frequency = HabitFrequency.Daily,
-            type = HabitType.Binary,
+            type = HabitType.Measurable(
+                target = 8,
+                unit = "cups",
+                progress = 5
+            ),
             nextDue = System.currentTimeMillis() + 1000
         ),
-        onLongPress = {}
+        onLongPress = {},
+        onIncrement = {},
+        onDecrement = {}
     )
 }

@@ -8,7 +8,7 @@ sealed class HabitFrequency {
 
 sealed class HabitType{
     data object Binary : HabitType()
-    data class Measurable(val target: Int, val unit: String) : HabitType()
+    data class Measurable(val target: Int, val unit: String, val progress: Int = 0) : HabitType()
 }
 
 data class Habit(
