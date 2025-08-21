@@ -2,11 +2,10 @@ package com.raven.odyssey.data.repository
 
 import com.raven.odyssey.data.dao.HabitDao
 import com.raven.odyssey.data.entity.HabitEntity
-import com.raven.odyssey.data.entity.toDomain
-import com.raven.odyssey.domain.model.HabitFrequency
 import com.raven.odyssey.domain.repository.HabitRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.util.Calendar
 import javax.inject.Inject
 
 class HabitRepositoryImpl @Inject constructor(
@@ -28,9 +27,9 @@ class HabitRepositoryImpl @Inject constructor(
         calendar.set(java.util.Calendar.MILLISECOND, 0)
         val startOfDay = calendar.timeInMillis
         calendar.set(java.util.Calendar.HOUR_OF_DAY, 23)
-        calendar.set(java.util.Calendar.MINUTE, 59)
-        calendar.set(java.util.Calendar.SECOND, 59)
-        calendar.set(java.util.Calendar.MILLISECOND, 999)
+        calendar.set(Calendar.MINUTE, 59)
+        calendar.set(Calendar.SECOND, 59)
+        calendar.set(Calendar.MILLISECOND, 999)
         val endOfDay = calendar.timeInMillis
         return habitDao.getHabitsForToday(startOfDay, endOfDay)
     }
@@ -42,12 +41,7 @@ class HabitRepositoryImpl @Inject constructor(
     override fun getDueHabits(currentTime: Long): Flow<List<HabitEntity>> {
         return habitDao.getAllHabits().map { entities ->
             entities.filter { entity ->
-                val habit = entity.toDomain()
-                when (habit.frequency) {
-                    is HabitFrequency.Daily -> habit.nextDue <= currentTime + 24 * 60 * 60 * 1000
-                    is HabitFrequency.Weekly -> habit.nextDue <= currentTime + 7 * 24 * 60 * 60 * 1000
-                    is HabitFrequency.Custom -> habit.nextDue <= currentTime + (habit.frequency.intervalDays * 24 * 60 * 60 * 1000)
-                }
+                entity.nextDue <= currentTime
             }
         }
     }

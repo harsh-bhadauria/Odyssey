@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raven.odyssey.domain.model.Todo
 import com.raven.odyssey.ui.theme.OdysseyTheme
+import java.util.Locale
 
 @Composable
 fun TodoListScreen(
@@ -50,6 +51,14 @@ fun TodoListScreen(
             }
         }
 
+        uiState.todos.isEmpty() -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "All done for today! \uD83C\uDF89",
+                )
+            }
+        }
+
         else -> {
             TodoListUI(uiState, onLongPress = { todo -> viewModel.deleteTodo(todo) })
         }
@@ -68,7 +77,6 @@ fun TodoListUI(uiState: TodoListUiState, onLongPress: (Todo) -> Unit) {
     }
 }
 
-@SuppressLint("DefaultLocale")
 @Composable
 fun TodoCard(todo: Todo, onLongPress: (Todo) -> Unit) {
     Card(
@@ -98,16 +106,10 @@ fun TodoCard(todo: Todo, onLongPress: (Todo) -> Unit) {
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
-//                if (!todo.description.isNullOrEmpty()) {
-//                    Text(
-//                        text = todo.description,
-//                        fontSize = 12.sp
-//                    )
-//                }
             }
             if (todo.hour != null && todo.minute != null) {
                 Text(
-                    text = String.format("%02d:%02d", todo.hour, todo.minute),
+                    text = String.format(Locale.getDefault(), "%02d:%02d", todo.hour, todo.minute),
                     modifier = Modifier.padding(16.dp),
                     fontSize = 24.sp
                 )

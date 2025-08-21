@@ -22,7 +22,7 @@ class HabitNotificationSchedulerImpl(
             timeInMillis = nextDue
         }
         val intent = Intent(context, NotificationReceiver::class.java).apply {
-            putExtra("habit_id", habit.id)
+            putExtra("notification_id", habit.id)
             putExtra("title", habit.name)
             putExtra("description", habit.description)
         }

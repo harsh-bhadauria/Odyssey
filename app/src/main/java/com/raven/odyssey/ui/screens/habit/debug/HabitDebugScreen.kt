@@ -24,6 +24,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.raven.odyssey.domain.model.Habit
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 @Composable
 fun HabitDebugScreen(
@@ -94,7 +95,7 @@ fun HabitDebugCard(habit: Habit, onLongPress: (Habit) -> Unit) {
                 )
             }
             Text(
-                text = SimpleDateFormat("HH:mm").format(Date(habit.nextDue)),
+                text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(habit.nextDue)),
                 fontSize = 20.sp,
                 modifier = Modifier.padding(16.dp)
             )

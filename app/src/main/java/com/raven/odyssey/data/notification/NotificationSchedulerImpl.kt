@@ -28,7 +28,7 @@ class NotificationSchedulerImpl(private val context: Context) : NotificationSche
             }
         }
         val intent = Intent(context, NotificationReceiver::class.java).apply {
-            putExtra("todo_id", todo.id)
+            putExtra("notification_id", todo.id)
             putExtra("title", todo.title)
             putExtra("description", todo.description)
         }

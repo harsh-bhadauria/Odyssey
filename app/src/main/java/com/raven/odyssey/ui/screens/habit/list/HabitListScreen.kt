@@ -56,6 +56,14 @@ fun HabitListScreen(
             }
         }
 
+        uiState.habits.isEmpty() -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "All done for today! \uD83C\uDF89",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
         else -> {
             HabitListUI(
                 uiState, onLongPress = { habit -> viewModel.completeHabit(habit) },
@@ -90,9 +98,7 @@ fun HabitListUI(
                 }
             }
         }
-
     }
-
 }
 
 @Composable
@@ -136,6 +142,9 @@ fun BinaryHabitCard(habit: Habit, onLongPress: (Habit) -> Unit) {
                         fontSize = 12.sp
                     )
                 }
+                Text(
+                    text = SimpleDateFormat("MMM dd, yyyy, HH:mm", Locale.getDefault()).format(Date(habit.nextDue))
+                )
             }
             Text(
                 text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(habit.nextDue)),
@@ -143,7 +152,6 @@ fun BinaryHabitCard(habit: Habit, onLongPress: (Habit) -> Unit) {
                 modifier = Modifier.padding(16.dp)
             )
         }
-
     }
 }
 
@@ -180,7 +188,9 @@ fun MeasurableHabitCard(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Button(onClick = { onDecrement(habit) }) {

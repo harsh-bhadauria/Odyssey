@@ -6,6 +6,7 @@ import com.raven.odyssey.data.entity.toDomain
 import com.raven.odyssey.data.entity.toEntity
 import com.raven.odyssey.domain.model.Habit
 import com.raven.odyssey.domain.model.HabitFrequency
+import com.raven.odyssey.domain.model.HabitType
 import com.raven.odyssey.domain.notification.HabitNotificationScheduler
 import com.raven.odyssey.domain.repository.HabitRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,29 +31,9 @@ class HabitListViewModel @Inject constructor(
 
     private fun loadHabits() {
         viewModelScope.launch {
-            habitRepository.getDueHabits(System.currentTimeMillis()).map { habitsList ->
-                val now = System.currentTimeMillis()
+            habitRepository.getHabitsForToday(System.currentTimeMillis()).map { habitsList ->
                 habitsList.map { habitEntity ->
-                    val habit = habitEntity.toDomain()
-                    val oneDayMillis = 24 * 60 * 60 * 1000
-                    if (habit.nextDue - now > oneDayMillis) {
-                        val oldDue =
-                            Calendar.getInstance().apply { timeInMillis = habit.nextDue }
-                        val newDue = Calendar.getInstance().apply {
-                            timeInMillis = now
-                            add(Calendar.DAY_OF_YEAR, 1)
-                            set(
-                                Calendar.HOUR_OF_DAY,
-                                oldDue.get(Calendar.HOUR_OF_DAY)
-                            )
-                            set(Calendar.MINUTE, oldDue.get(Calendar.MINUTE))
-                            set(Calendar.SECOND, 0)
-                            set(Calendar.MILLISECOND, 0)
-                        }
-                        habit.copy(nextDue = newDue.timeInMillis)
-                    } else {
-                        habit
-                    }
+                    habitEntity.toDomain()
                 }
             }.collect { habits ->
                 _uiState.value = HabitListUiState(
@@ -66,60 +47,55 @@ class HabitListViewModel @Inject constructor(
     fun completeHabit(habit: Habit) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
-            val calendar = Calendar.getInstance()
-            calendar.timeInMillis = now
+            val dueCal = Calendar.getInstance().apply { timeInMillis = habit.nextDue }
+            val hour = dueCal.get(Calendar.HOUR_OF_DAY)
+            val minute = dueCal.get(Calendar.MINUTE)
             when (habit.frequency) {
                 is HabitFrequency.Daily -> {
-                    // Add 1 day until in the future
-                    val dueCal =
-                        Calendar.getInstance().apply { timeInMillis = habit.nextDue }
-                    while (dueCal.timeInMillis <= now) {
+                    // Advance to same time tomorrow
+                    dueCal.timeInMillis = habit.nextDue
+                    do {
                         dueCal.add(Calendar.DATE, 1)
-                    }
-                    val updatedHabit = habit.copy(nextDue = dueCal.timeInMillis)
-                    habitRepository.updateHabit(updatedHabit.toEntity())
-                    notificationScheduler.cancelNotification(habit.id)
-                    notificationScheduler.scheduleNotification(updatedHabit)
+                    } while (dueCal.timeInMillis <= now)
                 }
 
                 is HabitFrequency.Weekly -> {
-                    // Set to next Monday at 00:00
-                    val dueCal = Calendar.getInstance().apply { timeInMillis = now }
-                    dueCal.set(Calendar.HOUR_OF_DAY, 0)
-                    dueCal.set(Calendar.MINUTE, 0)
-                    dueCal.set(Calendar.SECOND, 0)
-                    dueCal.set(Calendar.MILLISECOND, 0)
+                    // Advance to same time next week on the scheduled weekday
+                    dueCal.timeInMillis = habit.nextDue
                     val dayOfWeek = dueCal.get(Calendar.DAY_OF_WEEK)
-                    val daysUntilMonday = (Calendar.MONDAY - dayOfWeek + 7) % 7
-                    if (daysUntilMonday == 0 && dueCal.timeInMillis > now) {
-                        // Today is Monday and time is in the future
-                    } else {
-                        dueCal.add(Calendar.DATE, if (daysUntilMonday == 0) 7 else daysUntilMonday)
-                    }
-                    val updatedHabit = habit.copy(nextDue = dueCal.timeInMillis)
-                    habitRepository.updateHabit(updatedHabit.toEntity())
-                    notificationScheduler.cancelNotification(habit.id)
-                    notificationScheduler.scheduleNotification(updatedHabit)
+                    val nowCal = Calendar.getInstance().apply { timeInMillis = now }
+                    val daysUntilNext = (dayOfWeek - nowCal.get(Calendar.DAY_OF_WEEK) + 7) % 7
+                    dueCal.timeInMillis = now
+                    dueCal.add(Calendar.DATE, if (daysUntilNext == 0) 7 else daysUntilNext)
                 }
 
                 is HabitFrequency.Custom -> {
-                    val dueCal =
-                        Calendar.getInstance().apply { timeInMillis = habit.nextDue }
-                    while (dueCal.timeInMillis <= now) {
+                    // Advance to same time after interval
+                    dueCal.timeInMillis = habit.nextDue
+                    do {
                         dueCal.add(Calendar.DATE, habit.frequency.intervalDays)
-                    }
-                    val updatedHabit = habit.copy(nextDue = dueCal.timeInMillis)
-                    habitRepository.updateHabit(updatedHabit.toEntity())
-                    notificationScheduler.cancelNotification(habit.id)
-                    notificationScheduler.scheduleNotification(updatedHabit)
+                    } while (dueCal.timeInMillis <= now)
                 }
             }
+
+            dueCal.set(Calendar.HOUR_OF_DAY, hour)
+            dueCal.set(Calendar.MINUTE, minute)
+
+            // Reset progress for measurable habits
+            val updatedType = if (habit.type is HabitType.Measurable) {
+                (habit.type).copy(progress = 0)
+            } else habit.type
+            val updatedHabit = habit.copy(nextDue = dueCal.timeInMillis, type = updatedType)
+
+            habitRepository.updateHabit(updatedHabit.toEntity())
+            notificationScheduler.cancelNotification(habit.id)
+            notificationScheduler.scheduleNotification(updatedHabit)
         }
     }
 
     fun incrementProgress(habit: Habit) {
         val measurable = habit.type
-        if (measurable is com.raven.odyssey.domain.model.HabitType.Measurable) {
+        if (measurable is HabitType.Measurable) {
             val newProgress = (measurable.progress + 1).coerceAtMost(measurable.target)
             val updatedHabit = habit.copy(type = measurable.copy(progress = newProgress))
             viewModelScope.launch {
@@ -130,13 +106,16 @@ class HabitListViewModel @Inject constructor(
                         if (it.id == habit.id) updatedHabit else it
                     }
                 )
+                if (newProgress == measurable.target) {
+                    completeHabit(updatedHabit)
+                }
             }
         }
     }
 
     fun decrementProgress(habit: Habit) {
         val measurable = habit.type
-        if (measurable is com.raven.odyssey.domain.model.HabitType.Measurable) {
+        if (measurable is HabitType.Measurable) {
             val newProgress = (measurable.progress - 1).coerceAtLeast(0)
             val updatedHabit = habit.copy(type = measurable.copy(progress = newProgress))
             viewModelScope.launch {
