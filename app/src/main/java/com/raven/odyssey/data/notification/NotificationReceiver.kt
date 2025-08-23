@@ -68,7 +68,6 @@ class NotificationReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-
         return NotificationCompat.Builder(context, NotificationChannelUtil.CHANNEL_ID)
             .setSmallIcon(R.drawable.raven_notif)
             .setContentTitle(title)

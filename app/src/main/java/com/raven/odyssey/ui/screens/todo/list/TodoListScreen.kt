@@ -1,6 +1,5 @@
 package com.raven.odyssey.ui.screens.todo.list
 
-import android.annotation.SuppressLint
 import android.content.res.Configuration
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
