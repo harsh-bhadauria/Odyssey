@@ -86,22 +86,19 @@ fun HabitDebugCard(habit: Habit, onLongPress: (Habit) -> Unit) {
                     )
                 }
                 Text(
-                    text = "Type: ${habit.type}",
+                    text = "${habit.type}",
                     fontSize = 12.sp
                 )
                 Text(
-                    text = "Frequency: ${habit.frequency}",
+                    text = "${habit.frequency}",
                     fontSize = 12.sp
                 )
             }
             Text(
-                text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(habit.nextDue)),
+                text = SimpleDateFormat("MMM-dd HH:mm", Locale.getDefault()).format(Date(habit.nextDue)),
                 fontSize = 20.sp,
                 modifier = Modifier.padding(16.dp)
             )
         }
     }
 }
-
-
-

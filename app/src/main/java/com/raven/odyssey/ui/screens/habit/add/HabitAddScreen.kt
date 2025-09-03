@@ -1,6 +1,5 @@
 package com.raven.odyssey.ui.screens.habit.add
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,7 +11,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,6 +27,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.raven.odyssey.domain.model.HabitFrequency
+import com.raven.odyssey.domain.model.HabitType
 import java.util.Calendar
 import java.util.Locale
 
@@ -65,51 +67,59 @@ fun HabitAddScreen(
 
         // Frequency selection
         var freqExpanded by remember { mutableStateOf(false) }
-        Box {
-            OutlinedButton(onClick = { freqExpanded = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    when (uiState.frequency) {
-                        is com.raven.odyssey.domain.model.HabitFrequency.Daily -> "Daily"
-                        is com.raven.odyssey.domain.model.HabitFrequency.Weekly -> "Weekly"
-                        is com.raven.odyssey.domain.model.HabitFrequency.Custom -> "Custom"
+        ExposedDropdownMenuBox(
+            expanded = freqExpanded,
+            onExpandedChange = { freqExpanded = it },
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = when (uiState.frequency) {
+                    is HabitFrequency.Daily -> "Daily"
+                    is HabitFrequency.Weekly -> "Weekly"
+                    is HabitFrequency.Custom -> "Custom"
+                },
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Frequency") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = freqExpanded) },
+                modifier = Modifier.fillMaxWidth().menuAnchor()
+            )
+            ExposedDropdownMenu(
+                expanded = freqExpanded,
+                onDismissRequest = { freqExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Daily") },
+                    onClick = {
+                        viewModel.updateUiState(frequency = HabitFrequency.Daily, intervalDays = null)
+                        freqExpanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Weekly") },
+                    onClick = {
+                        viewModel.updateUiState(frequency = HabitFrequency.Weekly, intervalDays = null, hour = null, minute = null)
+                        freqExpanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Custom") },
+                    onClick = {
+                        viewModel.updateUiState(frequency = HabitFrequency.Custom(uiState.intervalDays ?: 1))
+                        freqExpanded = false
                     }
                 )
             }
-            DropdownMenu(expanded = freqExpanded, onDismissRequest = { freqExpanded = false }) {
-                DropdownMenuItem(text = { Text("Daily") }, onClick = {
-                    viewModel.updateUiState(
-                        frequency = com.raven.odyssey.domain.model.HabitFrequency.Daily,
-                        intervalDays = null
-                    )
-                    freqExpanded = false
-                })
-                DropdownMenuItem(text = { Text("Weekly") }, onClick = {
-                    viewModel.updateUiState(
-                        frequency = com.raven.odyssey.domain.model.HabitFrequency.Weekly,
-                        intervalDays = null,
-                        hour = null,
-                        minute = null
-                    )
-                    freqExpanded = false
-                })
-                DropdownMenuItem(text = { Text("Custom") }, onClick = {
-                    viewModel.updateUiState(
-                        frequency = com.raven.odyssey.domain.model.HabitFrequency.Custom(
-                            uiState.intervalDays ?: 1
-                        )
-                    )
-                    freqExpanded = false
-                })
-            }
         }
-        if (uiState.frequency is com.raven.odyssey.domain.model.HabitFrequency.Custom) {
+        if (uiState.frequency is HabitFrequency.Custom) {
             OutlinedTextField(
                 value = uiState.intervalDays?.toString() ?: "",
                 onValueChange = { value ->
                     val intVal = value.toIntOrNull() ?: 1
                     viewModel.updateUiState(
                         intervalDays = intVal,
-                        frequency = com.raven.odyssey.domain.model.HabitFrequency.Custom(intVal)
+                        frequency = HabitFrequency.Custom(intVal)
                     )
                 },
                 label = { Text("Interval Days") },
@@ -119,7 +129,7 @@ fun HabitAddScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Only show time picker for Daily and Custom
-        if (uiState.frequency !is com.raven.odyssey.domain.model.HabitFrequency.Weekly) {
+        if (uiState.frequency !is HabitFrequency.Weekly) {
             if (timePickerDialogVisible.value) {
                 AlertDialog(
                     onDismissRequest = { timePickerDialogVisible.value = false },
@@ -152,7 +162,12 @@ fun HabitAddScreen(
             ) {
                 Text(
                     if (uiState.hour != null && uiState.minute != null)
-                        String.format(Locale.getDefault(),"Time: %02d:%02d", uiState.hour, uiState.minute)
+                        String.format(
+                            Locale.getDefault(),
+                            "Time: %02d:%02d",
+                            uiState.hour,
+                            uiState.minute
+                        )
                     else
                         "Pick Time"
                 )
@@ -162,43 +177,51 @@ fun HabitAddScreen(
 
         // Type selection
         var typeExpanded by remember { mutableStateOf(false) }
-        Box {
-            OutlinedButton(onClick = { typeExpanded = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    when (uiState.type) {
-                        is com.raven.odyssey.domain.model.HabitType.Binary -> "Binary"
-                        is com.raven.odyssey.domain.model.HabitType.Measurable -> "Measurable"
+        ExposedDropdownMenuBox(
+            expanded = typeExpanded,
+            onExpandedChange = { typeExpanded = it },
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = when (uiState.type) {
+                    is HabitType.Binary -> "Binary"
+                    is HabitType.Measurable -> "Measurable"
+                },
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Type") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
+                modifier = Modifier.fillMaxWidth().menuAnchor()
+            )
+            ExposedDropdownMenu(
+                expanded = typeExpanded,
+                onDismissRequest = { typeExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Binary") },
+                    onClick = {
+                        viewModel.updateUiState(type = HabitType.Binary, target = null, unit = null)
+                        typeExpanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Measurable") },
+                    onClick = {
+                        viewModel.updateUiState(type = HabitType.Measurable(uiState.target ?: 1, uiState.unit ?: ""))
+                        typeExpanded = false
                     }
                 )
             }
-            DropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
-                DropdownMenuItem(text = { Text("Binary") }, onClick = {
-                    viewModel.updateUiState(
-                        type = com.raven.odyssey.domain.model.HabitType.Binary,
-                        target = null,
-                        unit = null
-                    )
-                    typeExpanded = false
-                })
-                DropdownMenuItem(text = { Text("Measurable") }, onClick = {
-                    viewModel.updateUiState(
-                        type = com.raven.odyssey.domain.model.HabitType.Measurable(
-                            uiState.target ?: 1,
-                            uiState.unit ?: ""
-                        )
-                    )
-                    typeExpanded = false
-                })
-            }
         }
-        if (uiState.type is com.raven.odyssey.domain.model.HabitType.Measurable) {
+        if (uiState.type is HabitType.Measurable) {
             OutlinedTextField(
                 value = uiState.target?.toString() ?: "",
                 onValueChange = { value ->
                     val intVal = value.toIntOrNull() ?: 1
                     viewModel.updateUiState(
                         target = intVal,
-                        type = com.raven.odyssey.domain.model.HabitType.Measurable(
+                        type = HabitType.Measurable(
                             intVal,
                             uiState.unit ?: ""
                         )
@@ -212,7 +235,7 @@ fun HabitAddScreen(
                 onValueChange = { value ->
                     viewModel.updateUiState(
                         unit = value,
-                        type = com.raven.odyssey.domain.model.HabitType.Measurable(
+                        type = HabitType.Measurable(
                             uiState.target ?: 1, value
                         )
                     )

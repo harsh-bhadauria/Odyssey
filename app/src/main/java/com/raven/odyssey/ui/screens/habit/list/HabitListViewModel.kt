@@ -31,7 +31,7 @@ class HabitListViewModel @Inject constructor(
 
     private fun loadHabits() {
         viewModelScope.launch {
-            habitRepository.getHabitsForToday(System.currentTimeMillis()).map { habitsList ->
+            habitRepository.getDueHabits(System.currentTimeMillis()).map { habitsList ->
                 habitsList.map { habitEntity ->
                     habitEntity.toDomain()
                 }

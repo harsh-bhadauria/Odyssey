@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.raven.odyssey.domain.model.Todo
 import com.raven.odyssey.ui.theme.OdysseyTheme
+import java.util.Calendar
 import java.util.Locale
 
 @Composable
@@ -104,56 +105,16 @@ fun TodoCard(todo: Todo, onLongPress: (Todo) -> Unit) {
                     fontSize = 20.sp,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-
             }
-            if (todo.hour != null && todo.minute != null) {
+            // Show due time if set
+            if (todo.dueTime > 0L) {
+                val cal = Calendar.getInstance().apply { timeInMillis = todo.dueTime }
                 Text(
-                    text = String.format(Locale.getDefault(), "%02d:%02d", todo.hour, todo.minute),
+                    text = String.format(Locale.getDefault(), "%02d:%02d", cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE)),
                     modifier = Modifier.padding(16.dp),
                     fontSize = 24.sp
                 )
             }
-        }
-    }
-}
-
-@Preview
-@Composable
-fun TodoCardPreview() {
-    OdysseyTheme {
-        TodoCard(
-            todo = Todo(
-                1,
-                "Sample Todo",
-                "This is a sample description",
-                5, 7, false,
-                1234
-            ),
-            onLongPress = {}
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "Light")
-@Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
-@Composable
-fun TodoListPreview() {
-    OdysseyTheme {
-        Scaffold {
-            it
-            val sampleTodos = listOf(
-                Todo(
-                    1,
-                    "Sample Todo 1",
-                    "This is a sample description",
-                    5, 7, false,
-                    1234
-                ),
-                Todo(2, "Sample Todo 2", null, 10, 50, true, 1002)
-            )
-            val uiState = TodoListUiState(todos = sampleTodos, isLoading = false)
-
-            TodoListUI(uiState, onLongPress = {})
         }
     }
 }

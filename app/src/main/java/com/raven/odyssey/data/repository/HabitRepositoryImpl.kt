@@ -20,13 +20,13 @@ class HabitRepositoryImpl @Inject constructor(
     override suspend fun deleteHabit(habit: HabitEntity) = habitDao.deleteHabit(habit)
 
     override fun getHabitsForToday(time: Long): Flow<List<HabitEntity>> {
-        val calendar = java.util.Calendar.getInstance().apply { timeInMillis = time }
-        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0)
-        calendar.set(java.util.Calendar.MINUTE, 0)
-        calendar.set(java.util.Calendar.SECOND, 0)
-        calendar.set(java.util.Calendar.MILLISECOND, 0)
+        val calendar = Calendar.getInstance().apply { timeInMillis = time }
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
         val startOfDay = calendar.timeInMillis
-        calendar.set(java.util.Calendar.HOUR_OF_DAY, 23)
+        calendar.set(Calendar.HOUR_OF_DAY, 23)
         calendar.set(Calendar.MINUTE, 59)
         calendar.set(Calendar.SECOND, 59)
         calendar.set(Calendar.MILLISECOND, 999)

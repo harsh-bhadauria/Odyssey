@@ -23,4 +23,13 @@ interface HabitDao {
 
     @Query("SELECT * FROM habits WHERE (nextDue BETWEEN :startOfDay AND :endOfDay) OR nextDue IS NULL")
     fun getHabitsForToday(startOfDay: Long, endOfDay: Long): Flow<List<HabitEntity>>
+
+    @Query("SELECT * FROM habits WHERE nextDue > :now")
+    suspend fun getUpcomingHabits(now: Long): List<HabitEntity>
+
+    @Query("SELECT * FROM habits WHERE nextDue <= :now")
+    suspend fun getDueHabits(now: Long): List<HabitEntity>
+
+    @Query("SELECT * FROM habits")
+    suspend fun getAllHabitsList(): List<HabitEntity>
 }

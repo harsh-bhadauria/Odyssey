@@ -15,17 +15,9 @@ import java.util.Calendar
 class NotificationSchedulerImpl(private val context: Context) : NotificationScheduler {
     @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     override fun scheduleNotification(todo: Todo) {
-        val hour = todo.hour ?: return
-        val minute = todo.minute ?: return
+        val dueTime = todo.dueTime
         val calendar = Calendar.getInstance().apply {
-            timeInMillis = System.currentTimeMillis()
-            set(Calendar.HOUR_OF_DAY, hour)
-            set(Calendar.MINUTE, minute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-            if (before(Calendar.getInstance())) {
-                add(Calendar.DATE, 1)
-            }
+            timeInMillis = dueTime
         }
         val intent = Intent(context, NotificationReceiver::class.java).apply {
             putExtra("notification_id", todo.id)

@@ -57,13 +57,24 @@ fun HabitListScreen(
         }
 
         uiState.habits.isEmpty() -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = "All done for today! \uD83C\uDF89",
-                    style = MaterialTheme.typography.bodyLarge
-                )
+            Column(
+                Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Button(onClick = onHabitDebugClicked) {
+                    Text("Habit Debug")
+                }
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "All done for today! \uD83C\uDF89",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+
             }
         }
+
         else -> {
             HabitListUI(
                 uiState, onLongPress = { habit -> viewModel.completeHabit(habit) },
@@ -143,7 +154,11 @@ fun BinaryHabitCard(habit: Habit, onLongPress: (Habit) -> Unit) {
                     )
                 }
                 Text(
-                    text = SimpleDateFormat("MMM dd, yyyy, HH:mm", Locale.getDefault()).format(Date(habit.nextDue))
+                    text = SimpleDateFormat("MMM dd, yyyy, HH:mm", Locale.getDefault()).format(
+                        Date(
+                            habit.nextDue
+                        )
+                    )
                 )
             }
             Text(

@@ -65,6 +65,7 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
+    implementation(libs.material3)
     ksp(libs.hilt.compiler)
 
     // Room
@@ -86,4 +87,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Lifecycle Process
+    implementation("androidx.lifecycle:lifecycle-process:2.9.3")
 }

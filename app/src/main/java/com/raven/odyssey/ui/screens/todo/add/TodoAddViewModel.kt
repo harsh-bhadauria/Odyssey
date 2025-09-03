@@ -20,15 +20,17 @@ class TodoAddViewModel @Inject constructor(
     private val notificationScheduler: NotificationScheduler
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(TodoAddUiState())
+    private val _uiState = MutableStateFlow(TodoAddUiState.default())
     val uiState: StateFlow<TodoAddUiState> = _uiState.asStateFlow()
 
     fun updateUiState(
         title: String? = null,
         description: String? = null,
-        hour: Int? = null,
-        minute: Int? = null,
-        dueDate: String? = null,
+        selectedYear: Int? = null,
+        selectedMonth: Int? = null,
+        selectedDay: Int? = null,
+        selectedHour: Int? = null,
+        selectedMinute: Int? = null,
         isSaving: Boolean? = null,
         error: String? = null,
     ) {
@@ -36,13 +38,27 @@ class TodoAddViewModel @Inject constructor(
             it.copy(
                 title = title ?: it.title,
                 description = description ?: it.description,
-                hour = hour ?: it.hour,
-                minute = minute ?: it.minute,
-                dueDate = dueDate ?: it.dueDate,
+                selectedYear = selectedYear ?: it.selectedYear,
+                selectedMonth = selectedMonth ?: it.selectedMonth,
+                selectedDay = selectedDay ?: it.selectedDay,
+                selectedHour = selectedHour ?: it.selectedHour,
+                selectedMinute = selectedMinute ?: it.selectedMinute,
                 isSaving = isSaving ?: it.isSaving,
-                error = error
+                error = error ?: it.error
             )
         }
+    }
+
+    private fun getDueTimeMillis(): Long {
+        val state = _uiState.value
+        val calendar = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.YEAR, state.selectedYear)
+            set(java.util.Calendar.MONTH, state.selectedMonth)
+            set(java.util.Calendar.DAY_OF_MONTH, state.selectedDay)
+            set(java.util.Calendar.HOUR_OF_DAY, state.selectedHour)
+            set(java.util.Calendar.MINUTE, state.selectedMinute)
+        }
+        return calendar.timeInMillis
     }
 
     fun addTodo(onAdded: () -> Unit) {
@@ -60,14 +76,12 @@ class TodoAddViewModel @Inject constructor(
                 val todo = Todo(
                     title = state.title,
                     description = state.description.takeIf { it.isNotBlank() },
-                    hour = state.hour,
-                    minute = state.minute,
-                    dueDate = state.dueDate.toLongOrNull()
+                    dueTime = getDueTimeMillis()
                 )
                 val id = todoRepository.insertTodo(todo.toEntity())
                 val todoWithId = todo.copy(id = id)
                 notificationScheduler.scheduleNotification(todoWithId)
-                _uiState.value = TodoAddUiState()
+                _uiState.value = TodoAddUiState.default()
                 onAdded()
 
             } catch (e: Exception) {
