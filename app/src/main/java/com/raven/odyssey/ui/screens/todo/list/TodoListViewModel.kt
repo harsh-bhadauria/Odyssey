@@ -14,18 +14,56 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
+
+fun getStartOfDay(timeInMillis: Long): Long {
+    return Calendar.getInstance().apply {
+        setTimeInMillis(timeInMillis)
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+}
+
+fun getStartOfWeek(timeInMillis: Long): Long {
+    return Calendar.getInstance().apply {
+        setTimeInMillis(timeInMillis)
+        set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+}
 
 @HiltViewModel
 class TodoListViewModel @Inject constructor(
     private val todoRepository: TodoRepository,
     private val notificationScheduler: NotificationScheduler
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(TodoListUiState(isLoading = true))
+    private val today = System.currentTimeMillis()
+    private val initialSelectedDate = getStartOfDay(today)
+    private val initialWeekStart = getStartOfWeek(today)
+    private val _uiState = MutableStateFlow(
+        TodoListUiState(
+            isLoading = true,
+            selectedDate = initialSelectedDate,
+            weekStart = initialWeekStart
+        )
+    )
     val uiState: StateFlow<TodoListUiState> = _uiState.asStateFlow()
 
     init {
         loadTodos()
+    }
+
+    fun updateUiState(
+        selectedDate: Long = uiState.value.selectedDate,
+        weekStart: Long = uiState.value.weekStart
+    ) {
+        _uiState.update { it.copy(selectedDate = selectedDate, weekStart = weekStart) }
     }
 
     fun loadTodos() {

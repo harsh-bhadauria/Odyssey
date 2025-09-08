@@ -4,6 +4,6 @@ sealed class Screen {
     object HabitList : Screen()
     object HabitAdd : Screen()
     object TodoList : Screen()
-    object TodoAdd : Screen()
+    data class TodoAdd(val selectedDateMillis: Long? = null) : Screen()
     object HabitDebug : Screen()
 }

@@ -89,4 +89,14 @@ class TodoAddViewModel @Inject constructor(
             }
         }
     }
+
+    fun setInitialDateIfNeeded(initialDateMillis: Long?) {
+        if (initialDateMillis != null) {
+            val state = _uiState.value
+            // Only set if the state is still at its default (empty title and description)
+            if (state.title.isBlank() && state.description.isBlank()) {
+                _uiState.value = TodoAddUiState.default(initialDateMillis)
+            }
+        }
+    }
 }

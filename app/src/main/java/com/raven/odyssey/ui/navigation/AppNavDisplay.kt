@@ -7,9 +7,12 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation3.runtime.entry
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
@@ -18,6 +21,7 @@ import com.raven.odyssey.ui.screens.habit.debug.HabitDebugScreen
 import com.raven.odyssey.ui.screens.habit.list.HabitListScreen
 import com.raven.odyssey.ui.screens.todo.add.TodoAddScreen
 import com.raven.odyssey.ui.screens.todo.list.TodoListScreen
+import com.raven.odyssey.ui.screens.todo.list.TodoListViewModel
 
 @Composable
 fun AppNavDisplay() {
@@ -28,6 +32,10 @@ fun AppNavDisplay() {
     val showBottomBar = current is Screen.TodoList || current is Screen.HabitList
     val showFab = current is Screen.TodoList || current is Screen.HabitList
 
+    // Obtain the TodoListViewModel to access selectedDate
+    val todoListViewModel: TodoListViewModel = hiltViewModel()
+    val uiState by todoListViewModel.uiState.collectAsState()
+
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
@@ -36,19 +44,19 @@ fun AppNavDisplay() {
                         backstack.removeLastOrNull()
                         backstack.add(selected)
                     }
-
                 }
             }
         },
         floatingActionButton = {
-            if (showFab) {
+            if (current is Screen.TodoList) {
                 FloatingActionButton(
                     onClick = {
-                        when (current) {
-                            is Screen.TodoList -> backstack.add(Screen.TodoAdd)
-                            is Screen.HabitList -> backstack.add(Screen.HabitAdd)
-                            else -> {}
+                        val initialDateMillis = if (uiState.selectedDate != 0L) {
+                            uiState.selectedDate
+                        } else {
+                            null
                         }
+                        backstack.add(Screen.TodoAdd(initialDateMillis))
                     },
                 ) { Icon(Icons.Default.Add, null) }
             }
@@ -63,15 +71,19 @@ fun AppNavDisplay() {
             onBack = { backstack.removeLastOrNull() },
             modifier = Modifier.padding(it),
             entryProvider = entryProvider {
-                entry<Screen.TodoList> { TodoListScreen() }
+                entry<Screen.TodoList> {
+                    TodoListScreen()
+                }
                 entry<Screen.HabitList> {
                     HabitListScreen(
                         onHabitDebugClicked = { backstack.add(Screen.HabitDebug) }
                     )
                 }
-                entry<Screen.TodoAdd> {
+                entry<Screen.TodoAdd> { screen ->
+                    val selectedDateMillis = screen.selectedDateMillis
                     TodoAddScreen(
-                        onTodoAdded = { backstack.removeLastOrNull() }
+                        onTodoAdded = { backstack.removeLastOrNull() },
+                        initialDateMillis = selectedDateMillis
                     )
                 }
                 entry<Screen.HabitAdd> {
