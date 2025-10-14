@@ -1,11 +1,13 @@
 package com.raven.odyssey.ui.screens.todo.add
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
@@ -69,7 +71,8 @@ fun TodoAddScreen(
             onValueChange = { viewModel.updateUiState(title = it) },
             label = { Text("Title") },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isSaving
+            enabled = !uiState.isSaving,
+            shape = RoundedCornerShape(size = 12.dp)
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -79,7 +82,8 @@ fun TodoAddScreen(
             onValueChange = { viewModel.updateUiState(description = it) },
             label = { Text("Description") },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isSaving
+            enabled = !uiState.isSaving,
+            shape = RoundedCornerShape(size = 12.dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -110,7 +114,7 @@ fun TodoAddScreen(
                     TextButton(onClick = { datePickerDialogVisible.value = false }) {
                         Text("Cancel")
                     }
-                }
+                },
             ) {
                 DatePicker(
                     state = datePickerState,

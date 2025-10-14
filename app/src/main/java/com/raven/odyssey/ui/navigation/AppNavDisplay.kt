@@ -1,5 +1,8 @@
 package com.raven.odyssey.ui.navigation
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -10,12 +13,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation3.runtime.entry
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
+import com.raven.odyssey.ui.components.Sidebar
 import com.raven.odyssey.ui.screens.habit.add.HabitAddScreen
 import com.raven.odyssey.ui.screens.habit.debug.HabitDebugScreen
 import com.raven.odyssey.ui.screens.habit.list.HabitListScreen
@@ -36,64 +44,88 @@ fun AppNavDisplay() {
     val todoListViewModel: TodoListViewModel = hiltViewModel()
     val uiState by todoListViewModel.uiState.collectAsState()
 
-    Scaffold(
-        bottomBar = {
-            if (showBottomBar) {
-                BottomNavigationBar(current = current) { selected ->
-                    if (current != selected) {
-                        backstack.removeLastOrNull()
-                        backstack.add(selected)
+    var isSidebarOpen by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    if (isSidebarOpen) {
+        BackHandler {
+            isSidebarOpen = false
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            bottomBar = {
+                if (showBottomBar) {
+                    BottomNavigationBar(current = current) { selected ->
+                        if (current != selected) {
+                            backstack.removeLastOrNull()
+                            backstack.add(selected)
+                        }
                     }
                 }
+            },
+            floatingActionButton = {
+                if (current is Screen.TodoList) {
+                    FloatingActionButton(
+                        onClick = {
+                            val initialDateMillis = if (uiState.selectedDate != 0L) {
+                                uiState.selectedDate
+                            } else {
+                                null
+                            }
+                            backstack.add(Screen.TodoAdd(initialDateMillis))
+                        },
+                    ) { Icon(Icons.Default.Add, null) }
+                } else if (current is Screen.HabitList) {
+                    FloatingActionButton(
+                        onClick = { backstack.add(Screen.HabitAdd) },
+                    ) { Icon(Icons.Default.Add, null) }
+                }
+            },
+            topBar = {
+                AppTopBar(
+                    current = current,
+                    onOpenDrawer = {
+                        isSidebarOpen = !isSidebarOpen
+                    }
+                )
             }
-        },
-        floatingActionButton = {
-            if (current is Screen.TodoList) {
-                FloatingActionButton(
-                    onClick = {
-                        val initialDateMillis = if (uiState.selectedDate != 0L) {
-                            uiState.selectedDate
-                        } else {
-                            null
-                        }
-                        backstack.add(Screen.TodoAdd(initialDateMillis))
-                    },
-                ) { Icon(Icons.Default.Add, null) }
-            }
-        },
-        topBar = {
-            AppTopBar(current = current)
+        ) {
+
+            NavDisplay(
+                backStack = backstack,
+                onBack = { backstack.removeLastOrNull() },
+                modifier = Modifier.padding(it),
+                entryProvider = entryProvider {
+                    entry<Screen.TodoList> {
+                        TodoListScreen()
+                    }
+                    entry<Screen.HabitList> {
+                        HabitListScreen(
+                            onHabitDebugClicked = { backstack.add(Screen.HabitDebug) }
+                        )
+                    }
+                    entry<Screen.TodoAdd> { screen ->
+                        val selectedDateMillis = screen.selectedDateMillis
+                        TodoAddScreen(
+                            onTodoAdded = { backstack.removeLastOrNull() },
+                            initialDateMillis = selectedDateMillis
+                        )
+                    }
+                    entry<Screen.HabitAdd> {
+                        HabitAddScreen(
+                            onHabitAdded = { backstack.removeLastOrNull() }
+                        )
+                    }
+
+                    entry<Screen.HabitDebug> { HabitDebugScreen() }
+                }
+            )
         }
-    ) {
-
-        NavDisplay(
-            backStack = backstack,
-            onBack = { backstack.removeLastOrNull() },
-            modifier = Modifier.padding(it),
-            entryProvider = entryProvider {
-                entry<Screen.TodoList> {
-                    TodoListScreen()
-                }
-                entry<Screen.HabitList> {
-                    HabitListScreen(
-                        onHabitDebugClicked = { backstack.add(Screen.HabitDebug) }
-                    )
-                }
-                entry<Screen.TodoAdd> { screen ->
-                    val selectedDateMillis = screen.selectedDateMillis
-                    TodoAddScreen(
-                        onTodoAdded = { backstack.removeLastOrNull() },
-                        initialDateMillis = selectedDateMillis
-                    )
-                }
-                entry<Screen.HabitAdd> {
-                    HabitAddScreen(
-                        onHabitAdded = { backstack.removeLastOrNull() }
-                    )
-                }
-
-                entry<Screen.HabitDebug> { HabitDebugScreen() }
-            }
+        Sidebar(
+            isOpen = isSidebarOpen,
+            onClose = { isSidebarOpen = false },
         )
     }
 }
