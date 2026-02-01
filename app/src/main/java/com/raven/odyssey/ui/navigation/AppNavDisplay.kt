@@ -18,12 +18,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation3.runtime.entry
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
-import com.raven.odyssey.ui.components.Sidebar
 import com.raven.odyssey.ui.screens.habit.add.HabitAddScreen
 import com.raven.odyssey.ui.screens.habit.debug.HabitDebugScreen
 import com.raven.odyssey.ui.screens.habit.list.HabitListScreen
@@ -41,6 +39,7 @@ fun AppNavDisplay() {
     val showFab = current is Screen.TodoList || current is Screen.HabitList
 
     // Obtain the TodoListViewModel to access selectedDate
+    // TODO Remove access to vm, do this inside screen itself
     val todoListViewModel: TodoListViewModel = hiltViewModel()
     val uiState by todoListViewModel.uiState.collectAsState()
 
@@ -82,14 +81,6 @@ fun AppNavDisplay() {
                         onClick = { backstack.add(Screen.HabitAdd) },
                     ) { Icon(Icons.Default.Add, null) }
                 }
-            },
-            topBar = {
-                AppTopBar(
-                    current = current,
-                    onOpenDrawer = {
-                        isSidebarOpen = !isSidebarOpen
-                    }
-                )
             }
         ) {
 
@@ -123,9 +114,5 @@ fun AppNavDisplay() {
                 }
             )
         }
-        Sidebar(
-            isOpen = isSidebarOpen,
-            onClose = { isSidebarOpen = false },
-        )
     }
 }

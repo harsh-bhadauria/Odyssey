@@ -29,12 +29,12 @@ fun AppTopBar(
             Text(title, style = pixelSansStyle)
         },
         navigationIcon = {
-            IconButton(onClick = onOpenDrawer) {
-                Icon(
-                    Icons.Default.Menu,
-                    contentDescription = null
-                )
-            }
+//            IconButton(onClick = onOpenDrawer) {
+//                Icon(
+//                    Icons.Default.Menu,
+//                    contentDescription = null
+//                )
+//            }
         },
     )
 }
