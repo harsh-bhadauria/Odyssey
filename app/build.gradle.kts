@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
@@ -39,8 +38,15 @@ android {
     }
 }
 
-kotlin{
-    jvmToolchain(17)
+androidComponents{
+    onVariants { variant ->
+        variant.sources.kotlin?.addStaticSourceDirectory(
+            layout.buildDirectory.dir("generated/ksp/${variant.name}/kotlin").get().toString()
+        )
+        variant.sources.java?.addStaticSourceDirectory(
+            layout.buildDirectory.dir("generated/ksp/${variant.name}/java").get().toString()
+        )
+    }
 }
 
 dependencies {
@@ -65,7 +71,7 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
-    implementation(libs.material3)
+    implementation(libs.androidx.material3)
     ksp(libs.hilt.compiler)
 
     // Room
