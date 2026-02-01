@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.raven.odyssey.data.entity.toEntity
 import com.raven.odyssey.domain.model.Habit
+import com.raven.odyssey.domain.model.Domain
 import com.raven.odyssey.domain.model.HabitFrequency
 import com.raven.odyssey.domain.model.HabitType
 import com.raven.odyssey.domain.notification.HabitNotificationScheduler
@@ -31,6 +32,7 @@ class HabitAddViewModel @Inject constructor(
         minute: Int? = null,
         frequency: HabitFrequency? = null,
         type: HabitType? = null,
+        domain: Domain? = null,
         target: Int? = null,
         unit: String? = null,
         intervalDays: Int? = null,
@@ -42,6 +44,7 @@ class HabitAddViewModel @Inject constructor(
             minute = minute ?: _uiState.value.minute,
             frequency = frequency ?: _uiState.value.frequency,
             type = type ?: _uiState.value.type,
+            domain = domain ?: _uiState.value.domain,
             target = target ?: _uiState.value.target,
             unit = unit ?: _uiState.value.unit,
             intervalDays = intervalDays ?: _uiState.value.intervalDays,
@@ -84,6 +87,7 @@ class HabitAddViewModel @Inject constructor(
                 isActive = true,
                 frequency = frequency,
                 type = type,
+                domain = _uiState.value.domain,
                 nextDue = nextDue
             )
             val id = habitRepository.insertHabit(habit.toEntity())

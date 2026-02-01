@@ -1,5 +1,6 @@
 package com.raven.odyssey.ui.screens.habit.add
 
+import com.raven.odyssey.domain.model.Domain
 import com.raven.odyssey.domain.model.HabitFrequency
 import com.raven.odyssey.domain.model.HabitType
 
@@ -9,6 +10,7 @@ data class HabitAddUiState(
     val isActive: Boolean = true,
     val frequency: HabitFrequency = HabitFrequency.Daily,
     val type: HabitType = HabitType.Binary,
+    val domain: Domain = Domain.Void,
     val hour: Int? = null,
     val minute: Int? = null,
     // For Measurable type

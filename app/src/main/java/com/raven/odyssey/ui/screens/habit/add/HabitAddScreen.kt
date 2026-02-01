@@ -8,9 +8,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.raven.odyssey.domain.model.Domain
 import com.raven.odyssey.domain.model.HabitFrequency
 import com.raven.odyssey.domain.model.HabitType
 import java.util.Calendar
@@ -42,7 +43,7 @@ fun HabitAddScreen(
     val timePickerDialogVisible = remember { mutableStateOf(false) }
     val calendar = Calendar.getInstance()
     val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
-    val currentMinute = calendar.get(Calendar.MINUTE) + 1
+    val currentMinute = calendar.get(Calendar.MINUTE)
     val timePickerState = remember { TimePickerState(currentHour, currentMinute, false) }
 
     Column(
@@ -65,6 +66,41 @@ fun HabitAddScreen(
         )
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Domain selection
+        var domainExpanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(
+            expanded = domainExpanded,
+            onExpandedChange = { domainExpanded = it },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = uiState.domain.name,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Domain") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = domainExpanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+            )
+            ExposedDropdownMenu(
+                expanded = domainExpanded,
+                onDismissRequest = { domainExpanded = false }
+            ) {
+                Domain.entries.forEach { domain ->
+                    DropdownMenuItem(
+                        text = { Text(domain.name) },
+                        onClick = {
+                            viewModel.updateUiState(domain = domain)
+                            domainExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
         // Frequency selection
         var freqExpanded by remember { mutableStateOf(false) }
         ExposedDropdownMenuBox(
@@ -83,7 +119,9 @@ fun HabitAddScreen(
                 readOnly = true,
                 label = { Text("Frequency") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = freqExpanded) },
-                modifier = Modifier.fillMaxWidth().menuAnchor()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
             )
             ExposedDropdownMenu(
                 expanded = freqExpanded,
@@ -192,7 +230,9 @@ fun HabitAddScreen(
                 readOnly = true,
                 label = { Text("Type") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
-                modifier = Modifier.fillMaxWidth().menuAnchor()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable)
             )
             ExposedDropdownMenu(
                 expanded = typeExpanded,

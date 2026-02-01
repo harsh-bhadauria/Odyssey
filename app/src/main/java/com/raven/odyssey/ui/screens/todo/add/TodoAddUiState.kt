@@ -1,5 +1,6 @@
 package com.raven.odyssey.ui.screens.todo.add
 
+import com.raven.odyssey.domain.model.Domain
 import java.util.Calendar
 
 data class TodoAddUiState(
@@ -10,6 +11,7 @@ data class TodoAddUiState(
     val selectedDay: Int,
     val selectedHour: Int,
     val selectedMinute: Int,
+    val selectedDomain: Domain = Domain.Void,
     val isSaving: Boolean = false,
     val error: String? = null
 ) {
@@ -50,6 +52,7 @@ data class TodoAddUiState(
                 selectedDay = now.get(Calendar.DAY_OF_MONTH),
                 selectedHour = now.get(Calendar.HOUR_OF_DAY),
                 selectedMinute = now.get(Calendar.MINUTE),
+                selectedDomain = Domain.Void,
                 isSaving = false,
                 error = null
             )

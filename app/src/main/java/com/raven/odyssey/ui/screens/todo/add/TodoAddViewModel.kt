@@ -3,6 +3,7 @@ package com.raven.odyssey.ui.screens.todo.add
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.raven.odyssey.data.entity.toEntity
+import com.raven.odyssey.domain.model.Domain
 import com.raven.odyssey.domain.model.Todo
 import com.raven.odyssey.domain.notification.NotificationScheduler
 import com.raven.odyssey.domain.repository.TodoRepository
@@ -31,6 +32,7 @@ class TodoAddViewModel @Inject constructor(
         selectedDay: Int? = null,
         selectedHour: Int? = null,
         selectedMinute: Int? = null,
+        selectedDomain: Domain? = null,
         isSaving: Boolean? = null,
         error: String? = null,
     ) {
@@ -43,6 +45,7 @@ class TodoAddViewModel @Inject constructor(
                 selectedDay = selectedDay ?: it.selectedDay,
                 selectedHour = selectedHour ?: it.selectedHour,
                 selectedMinute = selectedMinute ?: it.selectedMinute,
+                selectedDomain = selectedDomain ?: it.selectedDomain,
                 isSaving = isSaving ?: it.isSaving,
                 error = error ?: it.error
             )
@@ -76,7 +79,8 @@ class TodoAddViewModel @Inject constructor(
                 val todo = Todo(
                     title = state.title,
                     description = state.description.takeIf { it.isNotBlank() },
-                    dueTime = getDueTimeMillis()
+                    dueTime = getDueTimeMillis(),
+                    domain = state.selectedDomain
                 )
                 val id = todoRepository.insertTodo(todo.toEntity())
                 val todoWithId = todo.copy(id = id)

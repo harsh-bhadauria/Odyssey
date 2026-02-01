@@ -3,6 +3,7 @@ package com.raven.odyssey.data.entity
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.raven.odyssey.domain.model.Domain
 import com.raven.odyssey.domain.model.Todo
 
 @Entity(tableName = "todos")
@@ -12,7 +13,8 @@ data class TodoEntity(
     val description: String? = null,
     val isCompleted: Boolean = false,
     @ColumnInfo(name = "dueTime")
-    val dueTime: Long
+    val dueTime: Long,
+    val domain: String = Domain.Void.name,
 )
 
 fun TodoEntity.toDomain(): Todo = Todo(
@@ -20,7 +22,8 @@ fun TodoEntity.toDomain(): Todo = Todo(
     title = title,
     description = description,
     isCompleted = isCompleted,
-    dueTime = dueTime
+    dueTime = dueTime,
+    domain = Domain.entries.firstOrNull { it.name.equals(domain, ignoreCase = true) } ?: Domain.Void,
 )
 
 fun Todo.toEntity(): TodoEntity = TodoEntity(
@@ -28,5 +31,6 @@ fun Todo.toEntity(): TodoEntity = TodoEntity(
     title = title,
     description = description,
     isCompleted = isCompleted,
-    dueTime = dueTime
+    dueTime = dueTime,
+    domain = domain.name,
 )

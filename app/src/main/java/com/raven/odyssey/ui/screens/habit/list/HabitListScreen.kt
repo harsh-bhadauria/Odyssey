@@ -1,272 +1,195 @@
 package com.raven.odyssey.ui.screens.habit.list
 
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Surface
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.raven.odyssey.domain.model.Habit
-import com.raven.odyssey.domain.model.HabitFrequency
 import com.raven.odyssey.domain.model.HabitType
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-import java.util.concurrent.TimeUnit
+import com.raven.odyssey.ui.theme.AppColors
+import com.raven.odyssey.ui.theme.Typo
+
 
 @Composable
 fun HabitListScreen(
-    onHabitDebugClicked: () -> Unit,
     viewModel: HabitListViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        when {
-            uiState.isLoading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            }
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Spacer(modifier = Modifier.height(24.dp))
 
-            uiState.error != null -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = uiState.error ?: "Unknown error",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
+        HabitHeader()
 
-            uiState.habits.isEmpty() -> {
-                Column(
-                    Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Button(onClick = onHabitDebugClicked) {
-                        Text("Habit Debug")
-                    }
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "All done for today! \uD83C\uDF89",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+        Spacer(modifier = Modifier.height(24.dp))
 
-                }
-            }
+        // "This Week" Section
+        Text(
+            text = "This Week",
+            style = Typo.Title,
+            color = AppColors.Black
+        )
 
-            else -> {
-                HabitListUI(
-                    uiState, onLongPress = { habit -> viewModel.completeHabit(habit) },
-                    onHabitDebugClicked = onHabitDebugClicked,
-                    onIncrement = { viewModel.incrementProgress(it) },
-                    onDecrement = { viewModel.decrementProgress(it) }
-                )
-            }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // List of Weekly Habits
+        uiState.habits.forEach { habit ->
+            HabitCard(
+                habit = habit,
+                onIncrement = { viewModel.incrementProgress(habit) }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // "Today" Section
+        Text(
+            text = "Today",
+            style = Typo.Title,
+            color = AppColors.Black
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // List of Daily Habits
+        uiState.habits.forEach { habit ->
+            HabitCard(
+                habit = habit,
+                onIncrement = { viewModel.incrementProgress(habit) }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        Spacer(modifier = Modifier.height(100.dp)) // Space for FAB
     }
+
 }
 
-
 @Composable
-fun HabitListUI(
-    uiState: HabitListUiState,
-    onLongPress: (Habit) -> Unit,
-    onHabitDebugClicked: () -> Unit,
-    onIncrement: (Habit) -> Unit = {},
-    onDecrement: (Habit) -> Unit = {}
-) {
-    Column {
+fun HabitHeader() {
+    Column(
+        modifier = Modifier.padding(horizontal = 12.dp)
+    ) {
+        Text(
+            text = "Habit Tracker",
+            style = Typo.Headline
+        )
+        Spacer(modifier = Modifier.height(4.dp))
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            items(uiState.habits) { habit ->
-                HabitCard(habit, onLongPress, onIncrement, onDecrement)
-            }
-            item {
-                Button(onClick = onHabitDebugClicked) {
-                    Text("Habit Debug")
-                }
-            }
-        }
+        Text(
+            text = "Another day, another day, another day",
+            style = Typo.Subtitle
+        )
     }
 }
 
 @Composable
 fun HabitCard(
     habit: Habit,
-    onLongPress: (Habit) -> Unit,
-    onIncrement: (Habit) -> Unit,
-    onDecrement: (Habit) -> Unit
+    onIncrement: () -> Unit
 ) {
-    when (habit.type) {
-        is HabitType.Binary -> BinaryHabitCard(habit, onLongPress)
-        is HabitType.Measurable -> MeasurableHabitCard(habit, onLongPress, onIncrement, onDecrement)
-    }
-}
+    val measurable = habit.type as HabitType.Measurable
+    val themeColor = habit.domain.color
 
-@Composable
-fun BinaryHabitCard(habit: Habit, onLongPress: (Habit) -> Unit) {
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
-            .combinedClickable(
-                onClick = {},
-                onLongClick = { onLongPress(habit) }
-            )
+            .height(IntrinsicSize.Min) // Ensures the button matches the card height
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .weight(0.8f)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+        ) {
+
+            // Title and Counter Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = habit.name,
-                    fontSize = 20.sp,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    style = Typo.Body,
+                    color = AppColors.Black
                 )
-                if (!habit.description.isNullOrEmpty()) {
-                    Text(
-                        text = habit.description,
-                        fontSize = 12.sp
-                    )
-                }
-                Text(
-                    text = SimpleDateFormat("MMM dd, yyyy, HH:mm", Locale.getDefault()).format(
-                        Date(
-                            habit.nextDue
-                        )
-                    )
-                )
-            }
-            Text(
-                text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(habit.nextDue)),
-                fontSize = 20.sp,
-                modifier = Modifier.padding(16.dp)
-            )
-        }
-    }
-}
 
-@Composable
-fun MeasurableHabitCard(
-    habit: Habit,
-    onLongPress: (Habit) -> Unit,
-    onIncrement: (Habit) -> Unit,
-    onDecrement: (Habit) -> Unit
-) {
-    val measurable = habit.type as HabitType.Measurable
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .combinedClickable(
-                onClick = {},
-                onLongClick = { onLongPress(habit) }
-            )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = habit.name,
-                fontSize = 20.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            if (!habit.description.isNullOrEmpty()) {
-                Text(
-                    text = habit.description,
-                    fontSize = 12.sp
-                )
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Button(onClick = { onDecrement(habit) }) {
-                    Text("-")
-                }
                 Text(
                     text = "${measurable.progress} / ${measurable.target} ${measurable.unit}",
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    style = Typo.Number,
+                    color = AppColors.Black
                 )
-                Button(onClick = { onIncrement(habit) }) {
-                    Text("+")
-                }
             }
-            val progress = measurable.progress.toFloat() / measurable.target.toFloat()
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+
+            // Custom Progress Bar
             LinearProgressIndicator(
-                progress = { progress.coerceIn(0f, 1f) },
+                progress = {
+                    (measurable.progress.toFloat() / measurable.target.toFloat()).coerceIn(
+                        0f,
+                        1f
+                    )
+                },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
-                color = ProgressIndicatorDefaults.linearColor,
-                trackColor = ProgressIndicatorDefaults.linearTrackColor,
-                strokeCap = ProgressIndicatorDefaults.LinearStrokeCap,
+                    .height(8.dp)
+                    .clip(CircleShape),
+                color = themeColor,
+                trackColor = AppColors.Background
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .width(60.dp)
+                .fillMaxHeight()
+                .background(themeColor)
+                .clickable(onClick = onIncrement),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Increment",
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
             )
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun HabitCardPreview() {
-    HabitCard(
-        habit = Habit(
-            id = 1,
-            name = "Drink Water",
-            description = "Stay hydrated throughout the day",
-            isActive = true,
-            frequency = HabitFrequency.Daily,
-            type = HabitType.Measurable(
-                target = 8,
-                unit = "cups",
-                progress = 5
-            ),
-            nextDue = System.currentTimeMillis() + 1000
-        ),
-        onLongPress = {},
-        onIncrement = {},
-        onDecrement = {}
-    )
 }

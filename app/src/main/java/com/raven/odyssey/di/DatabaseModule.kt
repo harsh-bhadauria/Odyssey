@@ -18,7 +18,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideDatabase(@ApplicationContext appContext: Context): AppDatabase =
-        Room.databaseBuilder(appContext, AppDatabase::class.java, "odyssey_db").build()
+        Room.databaseBuilder(appContext, AppDatabase::class.java, "odyssey_db")
+            .fallbackToDestructiveMigration()
+            .build()
 
     @Provides
     fun provideHabitDao(db: AppDatabase): HabitDao = db.habitDao()
@@ -26,4 +28,3 @@ object DatabaseModule {
     @Provides
     fun provideTodoDao(db: AppDatabase): TodoDao = db.todoDao()
 }
-

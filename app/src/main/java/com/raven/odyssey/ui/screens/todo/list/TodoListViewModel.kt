@@ -15,11 +15,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
-fun getStartOfDay(timeInMillis: Long): Long {
+private fun startOfDay(timeInMillis: Long): Long {
     return Calendar.getInstance().apply {
-        setTimeInMillis(timeInMillis)
+        this.timeInMillis = timeInMillis
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)
@@ -29,7 +30,7 @@ fun getStartOfDay(timeInMillis: Long): Long {
 
 fun getStartOfWeek(timeInMillis: Long): Long {
     return Calendar.getInstance().apply {
-        setTimeInMillis(timeInMillis)
+        this.timeInMillis = timeInMillis
         set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)
@@ -38,13 +39,18 @@ fun getStartOfWeek(timeInMillis: Long): Long {
     }.timeInMillis
 }
 
+private fun startOfNextDay(timeInMillis: Long): Long {
+    val start = startOfDay(timeInMillis)
+    return start + TimeUnit.DAYS.toMillis(1)
+}
+
 @HiltViewModel
 class TodoListViewModel @Inject constructor(
     private val todoRepository: TodoRepository,
     private val notificationScheduler: NotificationScheduler
 ) : ViewModel() {
     private val today = System.currentTimeMillis()
-    private val initialSelectedDate = getStartOfDay(today)
+    private val initialSelectedDate = startOfDay(today)
     private val initialWeekStart = getStartOfWeek(today)
     private val _uiState = MutableStateFlow(
         TodoListUiState(
@@ -71,12 +77,32 @@ class TodoListViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                todoRepository.getAllTodos().map {
-                    it.map { todoEntity ->
-                        todoEntity.toDomain()
-                    }
+                todoRepository.getAllTodos().map { entities ->
+                    entities.map { it.toDomain() }
                 }.collect { todos ->
-                    _uiState.update { it.copy(todos = todos, isLoading = false, error = null) }
+                    val now = System.currentTimeMillis()
+                    val todayStart = startOfDay(now)
+                    val tomorrowStart = startOfNextDay(now)
+
+                    val overdue = todos
+                        .filter { !it.isCompleted }
+                        .filter { it.dueTime in 1 until todayStart }
+                        .sortedBy { it.dueTime }
+
+                    val today = todos
+                        .filter { !it.isCompleted }
+                        .filter { it.dueTime in todayStart until tomorrowStart }
+                        .sortedBy { it.dueTime }
+
+                    _uiState.update {
+                        it.copy(
+                            todos = todos,
+                            overdueTodos = overdue,
+                            todayTodos = today,
+                            isLoading = false,
+                            error = null
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.message) }

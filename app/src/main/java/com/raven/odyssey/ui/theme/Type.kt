@@ -31,6 +31,7 @@ val pixelSansStyle = TextStyle(
 
 
 val Outfit = FontFamily(Font(R.font.outfit))
+val OutfitRegular = FontFamily(Font(R.font.outfit_regular))
 val DMSerifDisplay = FontFamily(Font(R.font.dm_serif_display))
 val Inter = FontFamily(Font(R.font.inter))
 
@@ -58,8 +59,7 @@ object Typo {
     )
 
     val Body = TextStyle(
-        fontFamily = Outfit,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = OutfitRegular,
         fontSize = 16.sp
     )
 

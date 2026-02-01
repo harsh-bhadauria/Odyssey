@@ -6,10 +6,11 @@ sealed class HabitFrequency {
     data class Custom(val intervalDays: Int) : HabitFrequency()
 }
 
-sealed class HabitType{
+sealed class HabitType {
     data object Binary : HabitType()
     data class Measurable(val target: Int, val unit: String, val progress: Int = 0) : HabitType()
 }
+
 
 data class Habit(
     val id: Long = 0,
@@ -18,5 +19,6 @@ data class Habit(
     val isActive: Boolean = true,
     val frequency: HabitFrequency = HabitFrequency.Daily,
     val type: HabitType = HabitType.Binary,
+    val domain: Domain = Domain.Void,
     val nextDue: Long,
 )

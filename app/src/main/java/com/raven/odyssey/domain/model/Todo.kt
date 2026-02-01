@@ -5,5 +5,6 @@ data class Todo(
     val title: String,
     val description: String? = null,
     val isCompleted: Boolean = false,
-    val dueTime: Long
+    val dueTime: Long,
+    val domain: Domain = Domain.Void,
 )

@@ -34,8 +34,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.raven.odyssey.domain.model.Todo
+import com.raven.odyssey.ui.theme.AppColors
 import com.raven.odyssey.ui.theme.OdysseyTheme
-import com.raven.odyssey.ui.theme.*
+import com.raven.odyssey.ui.theme.Typo
 import java.util.Calendar
 import java.util.Locale
 
@@ -46,14 +47,16 @@ fun TodoListScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     TodoListContent(
-        todos = uiState.todos,
+        overdueTodos = uiState.overdueTodos,
+        todayTodos = uiState.todayTodos,
         onTodoClick = { viewModel.deleteTodo(it) }
     )
 }
 
 @Composable
 fun TodoListContent(
-    todos: List<Todo>,
+    overdueTodos: List<Todo>,
+    todayTodos: List<Todo>,
     onTodoClick: (Todo) -> Unit
 ) {
     Column(
@@ -73,8 +76,8 @@ fun TodoListContent(
         // Overdue Section (Red)
         TodoSection(
             title = "Overdue",
-            count = 4,
-            todos = todos,
+            count = overdueTodos.size,
+            todos = overdueTodos,
             backgroundColor = AppColors.Red,
             countColor = AppColors.White,
             contentColor = Color.White,
@@ -86,8 +89,8 @@ fun TodoListContent(
         // Today Section (White)
         TodoSection(
             title = "Today",
-            count = 4,
-            todos = todos,
+            count = todayTodos.size,
+            todos = todayTodos,
             backgroundColor = Color.White,
             contentColor = Color.Black,
             countColor = AppColors.Teal,
@@ -163,7 +166,7 @@ fun TodoSection(
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(24.dp)
+                        .size(20.dp)
                         .background(countColor, CircleShape)
                 ) {
                     Text(
@@ -247,10 +250,10 @@ fun TodoItem(
 
 private fun previewTodos(): List<Todo> =
     listOf(
-        Todo(id = 1, title = "Finalize Odyssey UI", description = "Polish spacing", dueTime = 930),
-        Todo(id = 2, title = "Reply to emails", description = null, dueTime = 1045),
-        Todo(id = 3, title = "Grocery run", description = "Ramen (ironically)", dueTime = 1300),
-        Todo(id = 4, title = "Ship release build", description = "v0.1.0", dueTime = 1700)
+        Todo(id = 1, title = "Finalize Odyssey UI", description = "Polish spacing", dueTime = 930, domain = com.raven.odyssey.domain.model.Domain.Void),
+        Todo(id = 2, title = "Reply to emails", description = null, dueTime = 1045, domain = com.raven.odyssey.domain.model.Domain.Void),
+        Todo(id = 3, title = "Grocery run", description = "Ramen (ironically)", dueTime = 1300, domain = com.raven.odyssey.domain.model.Domain.Void),
+        Todo(id = 4, title = "Ship release build", description = "v0.1.0", dueTime = 1700, domain = com.raven.odyssey.domain.model.Domain.Void)
     )
 
 @Preview(name = "Todo list – Light", showBackground = true)
@@ -259,7 +262,8 @@ private fun TodoListScreenPreview_Light() {
     OdysseyTheme(darkTheme = false, dynamicColor = false) {
         Surface {
             TodoListContent(
-                todos = previewTodos(),
+                overdueTodos = previewTodos(),
+                todayTodos = previewTodos(),
                 onTodoClick = {}
             )
         }
@@ -272,7 +276,8 @@ private fun TodoListScreenPreview_Dark() {
     OdysseyTheme(darkTheme = true, dynamicColor = false) {
         Surface {
             TodoListContent(
-                todos = previewTodos(),
+                overdueTodos = previewTodos(),
+                todayTodos = previewTodos(),
                 onTodoClick = {}
             )
         }
@@ -285,7 +290,29 @@ private fun TodoListScreenPreview_Empty() {
     OdysseyTheme(darkTheme = false, dynamicColor = false) {
         Surface {
             TodoListContent(
-                todos = emptyList(),
+                overdueTodos = emptyList(),
+                todayTodos = emptyList(),
+                onTodoClick = {}
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun TodoListPreview() {
+    val sampleTodos = listOf(
+        Todo(id = 1, title = "Finalize Odyssey UI", description = "Polish spacing", dueTime = 930, domain = com.raven.odyssey.domain.model.Domain.Void),
+        Todo(id = 2, title = "Reply to emails", description = null, dueTime = 1045, domain = com.raven.odyssey.domain.model.Domain.Void),
+        Todo(id = 3, title = "Grocery run", description = "Ramen (ironically)", dueTime = 1300, domain = com.raven.odyssey.domain.model.Domain.Void),
+        Todo(id = 4, title = "Ship release build", description = "v0.1.0", dueTime = 1700, domain = com.raven.odyssey.domain.model.Domain.Void)
+    )
+
+    OdysseyTheme {
+        Surface {
+            TodoListContent(
+                overdueTodos = sampleTodos,
+                todayTodos = sampleTodos,
                 onTodoClick = {}
             )
         }

@@ -10,11 +10,10 @@ import com.raven.odyssey.data.entity.TodoEntity
 
 @Database(
     entities = [HabitEntity::class, TodoEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
     abstract fun todoDao(): TodoDao
 }
-

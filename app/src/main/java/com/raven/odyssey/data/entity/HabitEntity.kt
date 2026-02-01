@@ -3,6 +3,7 @@ package com.raven.odyssey.data.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.raven.odyssey.domain.model.Habit
+import com.raven.odyssey.domain.model.Domain
 import com.raven.odyssey.domain.model.HabitFrequency
 import com.raven.odyssey.domain.model.HabitType
 
@@ -14,6 +15,7 @@ data class HabitEntity(
     val name: String,
     val description: String? = null,
     val isActive: Boolean = true,
+    val domain: String = "Void",
 
     val frequencyType: String,
     val intervalDays: Int? = null,
@@ -46,6 +48,7 @@ fun Habit.toEntity(): HabitEntity {
         name = name,
         description = description,
         isActive = isActive,
+        domain = domain.name,
         frequencyType = freqType,
         intervalDays = intervalDays,
         habitType = typeStr,
@@ -72,11 +75,16 @@ fun HabitEntity.toDomain(): Habit {
         )
         else -> throw IllegalArgumentException("Unknown habit type: ${this.habitType}")
     }
+
+    val domainDomain = Domain.entries.firstOrNull { it.name.equals(domain, ignoreCase = true) }
+        ?: Domain.Void
+
     return Habit(
         id = id,
         name = name,
         description = description,
         isActive = isActive,
+        domain = domainDomain,
         frequency = domainFrequency,
         type = domainType,
         nextDue = nextDue

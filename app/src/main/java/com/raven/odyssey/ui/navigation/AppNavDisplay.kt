@@ -4,50 +4,57 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.raven.odyssey.ui.screens.habit.add.HabitAddScreen
 import com.raven.odyssey.ui.screens.habit.debug.HabitDebugScreen
 import com.raven.odyssey.ui.screens.habit.list.HabitListScreen
-import com.raven.odyssey.ui.screens.todo.add.TodoAddScreen
+import com.raven.odyssey.ui.screens.todo.add.TaskInputInterface
 import com.raven.odyssey.ui.screens.todo.list.TodoListScreen
-import com.raven.odyssey.ui.screens.todo.list.TodoListViewModel
+import com.raven.odyssey.ui.theme.AppColors
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavDisplay() {
 
     val backstack = remember { mutableStateListOf<Screen>(Screen.TodoList) }
-    val current = backstack.lastOrNull() ?: Screen.TodoList
+
+    val top = backstack.lastOrNull() ?: Screen.TodoList
+    val current = if (top is Screen.TaskAddSheet) {
+        backstack.getOrNull(backstack.lastIndex - 1) ?: Screen.TodoList
+    } else {
+        top
+    }
 
     val showBottomBar = current is Screen.TodoList || current is Screen.HabitList
-    val showFab = current is Screen.TodoList || current is Screen.HabitList
 
-    // Obtain the TodoListViewModel to access selectedDate
-    // TODO Remove access to vm, do this inside screen itself
-    val todoListViewModel: TodoListViewModel = hiltViewModel()
-    val uiState by todoListViewModel.uiState.collectAsState()
+    val sheetVisible = top is Screen.TaskAddSheet
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    var isSidebarOpen by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+    // Render the app content from a backstack that excludes overlay-only routes.
+    // This keeps the previous screen visible behind the sheet.
+    val contentBackstack = remember(backstack.toList()) {
+        backstack.filterNot { it is Screen.TaskAddSheet }
+    }
 
-    if (isSidebarOpen) {
+    if (sheetVisible) {
         BackHandler {
-            isSidebarOpen = false
+            backstack.removeLastOrNull()
         }
     }
 
@@ -64,44 +71,33 @@ fun AppNavDisplay() {
                 }
             },
             floatingActionButton = {
-                if (current is Screen.TodoList) {
+                if (current is Screen.TodoList || current is Screen.HabitList) {
                     FloatingActionButton(
                         onClick = {
-                            val initialDateMillis = if (uiState.selectedDate != 0L) {
-                                uiState.selectedDate
-                            } else {
-                                null
-                            }
-                            backstack.add(Screen.TodoAdd(initialDateMillis))
+                            // Activate the task add menu.
+                            backstack.add(Screen.TaskAddSheet)
                         },
-                    ) { Icon(Icons.Default.Add, null) }
-                } else if (current is Screen.HabitList) {
-                    FloatingActionButton(
-                        onClick = { backstack.add(Screen.HabitAdd) },
-                    ) { Icon(Icons.Default.Add, null) }
+                        containerColor = AppColors.Teal,
+                        shape = CircleShape,
+                        modifier = Modifier.size(64.dp)
+                    ) { Icon(Icons.Default.Add, null, tint = AppColors.White) }
                 }
             }
         ) {
 
             NavDisplay(
-                backStack = backstack,
-                onBack = { backstack.removeLastOrNull() },
+                backStack = contentBackstack,
+                onBack = {
+                    // Pop from the real backstack (which may include overlays).
+                    backstack.removeLastOrNull()
+                },
                 modifier = Modifier.padding(it),
                 entryProvider = entryProvider {
                     entry<Screen.TodoList> {
                         TodoListScreen()
                     }
                     entry<Screen.HabitList> {
-                        HabitListScreen(
-                            onHabitDebugClicked = { backstack.add(Screen.HabitDebug) }
-                        )
-                    }
-                    entry<Screen.TodoAdd> { screen ->
-                        val selectedDateMillis = screen.selectedDateMillis
-                        TodoAddScreen(
-                            onTodoAdded = { backstack.removeLastOrNull() },
-                            initialDateMillis = selectedDateMillis
-                        )
+                        HabitListScreen()
                     }
                     entry<Screen.HabitAdd> {
                         HabitAddScreen(
@@ -112,6 +108,18 @@ fun AppNavDisplay() {
                     entry<Screen.HabitDebug> { HabitDebugScreen() }
                 }
             )
+        }
+
+        if (sheetVisible) {
+            ModalBottomSheet(
+                sheetState = sheetState,
+                onDismissRequest = { backstack.removeLastOrNull() },
+                dragHandle = {}
+            ) {
+                TaskInputInterface(
+                    onDismiss = { backstack.removeLastOrNull() }
+                )
+            }
         }
     }
 }
