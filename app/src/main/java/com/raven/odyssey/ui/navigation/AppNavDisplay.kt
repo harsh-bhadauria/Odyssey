@@ -21,10 +21,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
-import com.raven.odyssey.ui.screens.habit.add.HabitAddScreen
+import com.raven.odyssey.ui.screens.habit.add.HabitAddMenu
 import com.raven.odyssey.ui.screens.habit.debug.HabitDebugScreen
 import com.raven.odyssey.ui.screens.habit.list.HabitListScreen
-import com.raven.odyssey.ui.screens.todo.add.TaskInputInterface
+import com.raven.odyssey.ui.screens.todo.add.TodoAddMenu
 import com.raven.odyssey.ui.screens.todo.list.TodoListScreen
 import com.raven.odyssey.ui.theme.AppColors
 
@@ -35,7 +35,10 @@ fun AppNavDisplay() {
     val backstack = remember { mutableStateListOf<Screen>(Screen.TodoList) }
 
     val top = backstack.lastOrNull() ?: Screen.TodoList
-    val current = if (top is Screen.TaskAddSheet) {
+
+    val isOverlayTop = top is Screen.TodoAdd || top is Screen.HabitAdd
+
+    val current = if (isOverlayTop) {
         backstack.getOrNull(backstack.lastIndex - 1) ?: Screen.TodoList
     } else {
         top
@@ -43,16 +46,13 @@ fun AppNavDisplay() {
 
     val showBottomBar = current is Screen.TodoList || current is Screen.HabitList
 
-    val sheetVisible = top is Screen.TaskAddSheet
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // Render the app content from a backstack that excludes overlay-only routes.
-    // This keeps the previous screen visible behind the sheet.
     val contentBackstack = remember(backstack.toList()) {
-        backstack.filterNot { it is Screen.TaskAddSheet }
+        backstack.filterNot { it is Screen.TodoAdd || it is Screen.HabitAdd }
     }
 
-    if (sheetVisible) {
+    if (isOverlayTop) {
         BackHandler {
             backstack.removeLastOrNull()
         }
@@ -74,8 +74,11 @@ fun AppNavDisplay() {
                 if (current is Screen.TodoList || current is Screen.HabitList) {
                     FloatingActionButton(
                         onClick = {
-                            // Activate the task add menu.
-                            backstack.add(Screen.TaskAddSheet)
+                            when (current) {
+                                is Screen.TodoList -> backstack.add(Screen.TodoAdd)
+                                is Screen.HabitList -> backstack.add(Screen.HabitAdd)
+                                else -> Unit
+                            }
                         },
                         containerColor = AppColors.Teal,
                         shape = CircleShape,
@@ -99,27 +102,52 @@ fun AppNavDisplay() {
                     entry<Screen.HabitList> {
                         HabitListScreen()
                     }
-                    entry<Screen.HabitAdd> {
-                        HabitAddScreen(
-                            onHabitAdded = { backstack.removeLastOrNull() }
-                        )
-                    }
-
                     entry<Screen.HabitDebug> { HabitDebugScreen() }
                 }
             )
         }
 
-        if (sheetVisible) {
-            ModalBottomSheet(
-                sheetState = sheetState,
-                onDismissRequest = { backstack.removeLastOrNull() },
-                dragHandle = {}
-            ) {
-                TaskInputInterface(
-                    onDismiss = { backstack.removeLastOrNull() }
-                )
+        // Overlays
+        when (top) {
+            is Screen.TodoAdd -> {
+                ModalBottomSheet(
+                    sheetState = sheetState,
+                    onDismissRequest = { backstack.removeLastOrNull() },
+                    dragHandle = {}
+                ) {
+                    TodoAddMenu(
+                        onDismiss = { backstack.removeLastOrNull() }
+                    )
+                }
             }
+
+            is Screen.HabitAdd -> {
+                ModalBottomSheet(
+                    sheetState = sheetState,
+                    onDismissRequest = { backstack.removeLastOrNull() },
+                    dragHandle = {}
+                ) {
+                    val habitAddViewModel: com.raven.odyssey.ui.screens.habit.add.HabitAddViewModel =
+                        androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel()
+
+                    HabitAddMenu(
+                        onDismiss = {
+                            habitAddViewModel.resetUiState()
+                            backstack.removeLastOrNull()
+                        },
+                        viewModel = habitAddViewModel,
+                    )
+
+                    // Also reset when the sheet is dismissed by gesture.
+                    androidx.compose.runtime.DisposableEffect(Unit) {
+                        onDispose {
+                            habitAddViewModel.resetUiState()
+                        }
+                    }
+                }
+            }
+
+            else -> Unit
         }
     }
 }

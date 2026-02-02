@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -73,29 +75,77 @@ fun TodoListContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Overdue Section (Red)
-        TodoSection(
-            title = "Overdue",
-            count = overdueTodos.size,
-            todos = overdueTodos,
-            backgroundColor = AppColors.Red,
-            countColor = AppColors.White,
-            contentColor = Color.White,
-            onTodoClick = onTodoClick
-        )
+        if (todayTodos.isEmpty() && overdueTodos.isEmpty()) {
+            // No todos at all – keep header visible and show an empty-state in the body area.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Nothing scheduled for today",
+                        style = Typo.Title,
+                        color = AppColors.Black
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Add a task, or enjoy the free space.",
+                        style = Typo.Subtitle,
+                        color = AppColors.Black
+                    )
+                }
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(100.dp))
+            return
+        }
 
-        // Today Section (White)
-        TodoSection(
-            title = "Today",
-            count = todayTodos.size,
-            todos = todayTodos,
-            backgroundColor = Color.White,
-            contentColor = Color.Black,
-            countColor = AppColors.Teal,
-            onTodoClick = onTodoClick
-        )
+        // Overdue Section (only show if there are overdue todos)
+        if (overdueTodos.isNotEmpty()) {
+            TodoSection(
+                title = "Overdue",
+                count = overdueTodos.size,
+                todos = overdueTodos,
+                backgroundColor = AppColors.Red,
+                countColor = AppColors.White,
+                contentColor = Color.White,
+                onTodoClick = onTodoClick
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Today Section (only show if there are today todos)
+        if (todayTodos.isNotEmpty()) {
+            TodoSection(
+                title = "Today",
+                count = todayTodos.size,
+                todos = todayTodos,
+                backgroundColor = Color.White,
+                contentColor = Color.Black,
+                countColor = AppColors.Teal,
+                onTodoClick = onTodoClick
+            )
+        } else {
+            // No todos for today (but there are overdue ones) – show message under header.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Nothing scheduled for today.",
+                    style = Typo.Subtitle,
+                    color = AppColors.Black
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(100.dp)) // Space for FAB
     }

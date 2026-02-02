@@ -44,6 +44,9 @@ fun HabitListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    val weeklyHabits = uiState.habits.filter { it.type is HabitType.Measurable }
+    val todayHabits = uiState.habits.filter { it.type is HabitType.Binary }
+
     Column(
         modifier = Modifier
             .padding(horizontal = 16.dp)
@@ -55,48 +58,83 @@ fun HabitListScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // "This Week" Section
-        Text(
-            text = "This Week",
-            style = Typo.Title,
-            color = AppColors.Black
-        )
+        if (weeklyHabits.isEmpty() && todayHabits.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "No habits due right now",
+                        style = Typo.Title,
+                        color = AppColors.Black
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "You're all caught up — add a habit to get started.",
+                        style = Typo.Subtitle,
+                        color = AppColors.Black
+                    )
+                }
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // List of Weekly Habits
-        uiState.habits.forEach { habit ->
-            HabitCard(
-                habit = habit,
-                onIncrement = { viewModel.incrementProgress(habit) }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(100.dp))
+            return
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // "Today" Section
-        Text(
-            text = "Today",
-            style = Typo.Title,
-            color = AppColors.Black
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // List of Daily Habits
-        uiState.habits.forEach { habit ->
-            HabitCard(
-                habit = habit,
-                onIncrement = { viewModel.incrementProgress(habit) }
+        // "This Week" Section (only show if there are weekly habits)
+        if (weeklyHabits.isNotEmpty()) {
+            Text(
+                text = "This Week",
+                style = Typo.Title,
+                color = AppColors.Black
             )
-            Spacer(modifier = Modifier.height(8.dp))
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // List of Weekly Habits
+            weeklyHabits.forEach { habit ->
+                HabitCard(
+                    habit = habit,
+                    onIncrement = { viewModel.incrementProgress(habit) }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // "Today" Section (only show if there are today habits)
+        if (todayHabits.isNotEmpty()) {
+            Text(
+                text = "Today",
+                style = Typo.Title,
+                color = AppColors.Black
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // List of Daily Habits
+            todayHabits.forEach { habit ->
+                HabitCard(
+                    habit = habit,
+                    onIncrement = { viewModel.incrementProgress(habit) }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
 
         Spacer(modifier = Modifier.height(100.dp)) // Space for FAB
     }
-
 }
+
 
 @Composable
 fun HabitHeader() {
@@ -121,8 +159,22 @@ fun HabitCard(
     habit: Habit,
     onIncrement: () -> Unit
 ) {
-    val measurable = habit.type as HabitType.Measurable
     val themeColor = habit.domain.color
+
+    val progressText = when (val type = habit.type) {
+        is HabitType.Measurable -> "${type.progress} / ${type.target} ${type.unit}"
+        is HabitType.Binary -> "—"
+    }
+
+    val progressFraction = when (val type = habit.type) {
+        is HabitType.Measurable ->
+            if (type.target <= 0) 0f else (type.progress.toFloat() / type.target.toFloat()).coerceIn(
+                0f,
+                1f
+            )
+
+        is HabitType.Binary -> 0f
+    }
 
     Row(
         modifier = Modifier
@@ -150,7 +202,7 @@ fun HabitCard(
                 )
 
                 Text(
-                    text = "${measurable.progress} / ${measurable.target} ${measurable.unit}",
+                    text = progressText,
                     style = Typo.Number,
                     color = AppColors.Black
                 )
@@ -158,15 +210,9 @@ fun HabitCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-
             // Custom Progress Bar
             LinearProgressIndicator(
-                progress = {
-                    (measurable.progress.toFloat() / measurable.target.toFloat()).coerceIn(
-                        0f,
-                        1f
-                    )
-                },
+                progress = { progressFraction },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)

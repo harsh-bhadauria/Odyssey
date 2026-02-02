@@ -25,6 +25,10 @@ class HabitAddViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HabitAddUiState())
     val uiState: StateFlow<HabitAddUiState> = _uiState
 
+    fun resetUiState() {
+        _uiState.value = HabitAddUiState()
+    }
+
     fun updateUiState(
         name: String? = null,
         description: String? = null,
