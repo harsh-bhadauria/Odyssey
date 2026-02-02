@@ -1,7 +1,11 @@
 package com.raven.odyssey.ui.screens.todo.add
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +29,6 @@ import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,7 +49,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -168,18 +170,8 @@ fun TodoAddMenu(
                 )
             }
 
-            if (domainPickerVisible.value) {
-                DomainPickerDialog(
-                    selected = uiState.selectedDomain,
-                    onSelect = {
-                        viewModel.updateUiState(selectedDomain = it)
-                    },
-                    onDismiss = {
-                        domainPickerVisible.value = false
-                        refocusTitle()
-                    }
-                )
-            }
+            // Remove the domain selection dialog; we now use an inline picker.
+            // (Domain picker is handled via AnimatedVisibility below)
 
             // 3. Action Row (Date, Flags, Tags, Mic)
             Row(
@@ -203,10 +195,29 @@ fun TodoAddMenu(
 
                     DomainChip(
                         domain = uiState.selectedDomain,
-                        onClick = { domainPickerVisible.value = true }
+                        onClick = { domainPickerVisible.value = !domainPickerVisible.value }
                     )
                 }
             }
+
+            // Inline domain picker (2 rows), shown only after tapping the chip.
+            AnimatedVisibility(
+                visible = domainPickerVisible.value,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut(),
+            ) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+                    DomainChoiceGrid2x3(
+                        selected = uiState.selectedDomain,
+                        onSelect = {
+                            viewModel.updateUiState(selectedDomain = it)
+                            domainPickerVisible.value = false
+                            refocusTitle()
+                        }
+                    )
+                }
+            }
+
         }
     }
 }
@@ -271,22 +282,6 @@ fun DateChip() {
     }
 }
 
-// Helper: Generic Action Icon
-@Composable
-fun ActionIcon(icon: ImageVector) {
-    IconButton(
-        onClick = { /* TODO */ },
-        modifier = Modifier.size(32.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = Color.Gray,
-            modifier = Modifier.size(20.dp)
-        )
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimePickerDialog(
@@ -314,47 +309,75 @@ private fun TimePickerDialog(
 }
 
 @Composable
-private fun DomainPickerDialog(
+private fun DomainChoiceGrid2x3(
     selected: Domain,
     onSelect: (Domain) -> Unit,
-    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Pick Domain") },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Done") }
-        },
-        text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Domain.entries.forEach { domain ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onSelect(domain)
-                                onDismiss()
-                            }
-                            .padding(vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(14.dp)
-                                .clip(CircleShape)
-                                .background(domain.color)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = domain.name,
-                            fontSize = 16.sp,
-                            fontWeight = if (domain == selected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
+    val options = Domain.entries
+        .filterNot { it == Domain.Void }
+        .take(6)
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        options.chunked(3).forEachIndexed { rowIndex, row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                row.forEach { domain ->
+                    DomainChoiceChip(
+                        domain = domain,
+                        isSelected = domain == selected,
+                        onClick = { onSelect(domain) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+
+                repeat(3 - row.size) {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
+
+            if (rowIndex != 1) {
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         }
-    )
+    }
+}
+
+@Composable
+private fun DomainChoiceChip(
+    domain: Domain,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = if (isSelected) domain.color else domain.color.copy(alpha = 0.18f),
+        modifier = modifier,
+    ) {
+        Row(
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(if (isSelected) Color.White else domain.color),
+            )
+            Text(
+                text = domain.name,
+                fontSize = 12.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isSelected) Color.White else Color.Black,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+        }
+    }
 }
 
 @Composable

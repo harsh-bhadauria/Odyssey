@@ -276,7 +276,8 @@ fun HabitAddScreen(
                     viewModel.updateUiState(
                         unit = value,
                         type = HabitType.Measurable(
-                            uiState.target ?: 1, value
+                            uiState.target ?: 1,
+                            value
                         )
                     )
                 },

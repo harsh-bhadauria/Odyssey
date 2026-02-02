@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
@@ -47,28 +49,84 @@ fun HabitListScreen(
     val weeklyHabits = uiState.habits.filter { it.type is HabitType.Measurable }
     val todayHabits = uiState.habits.filter { it.type is HabitType.Binary }
 
-    Column(
-        modifier = Modifier
-            .padding(horizontal = 16.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Spacer(modifier = Modifier.height(24.dp))
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
 
-        HabitHeader()
+            HabitHeader()
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            // "This Week" Section (only show if there are weekly habits)
+            if (weeklyHabits.isNotEmpty()) {
+                Text(
+                    text = "This Week",
+                    style = Typo.Title,
+                    color = AppColors.Black
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // List of Weekly Habits
+                weeklyHabits.forEach { habit ->
+                    HabitCard(
+                        habit = habit,
+                        onIncrement = {
+                            when (habit.type) {
+                                is HabitType.Measurable -> viewModel.incrementProgress(habit)
+                                is HabitType.Binary -> viewModel.completeHabit(habit)
+                            }
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            // "Today" Section (only show if there are today habits)
+            if (todayHabits.isNotEmpty()) {
+                Text(
+                    text = "Today",
+                    style = Typo.Title,
+                    color = AppColors.Black
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // List of Daily Habits
+                todayHabits.forEach { habit ->
+                    HabitCard(
+                        habit = habit,
+                        onIncrement = {
+                            when (habit.type) {
+                                is HabitType.Measurable -> viewModel.incrementProgress(habit)
+                                is HabitType.Binary -> viewModel.completeHabit(habit)
+                            }
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            Spacer(modifier = Modifier.height(100.dp)) // Space for FAB
+        }
+
+        // Truly centered empty-state when there are no habits at all.
         if (weeklyHabits.isEmpty() && todayHabits.isEmpty()) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 48.dp),
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "No habits due right now",
                         style = Typo.Title,
@@ -82,56 +140,7 @@ fun HabitListScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(100.dp))
-            return
         }
-
-        // "This Week" Section (only show if there are weekly habits)
-        if (weeklyHabits.isNotEmpty()) {
-            Text(
-                text = "This Week",
-                style = Typo.Title,
-                color = AppColors.Black
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // List of Weekly Habits
-            weeklyHabits.forEach { habit ->
-                HabitCard(
-                    habit = habit,
-                    onIncrement = { viewModel.incrementProgress(habit) }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-
-        // "Today" Section (only show if there are today habits)
-        if (todayHabits.isNotEmpty()) {
-            Text(
-                text = "Today",
-                style = Typo.Title,
-                color = AppColors.Black
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // List of Daily Habits
-            todayHabits.forEach { habit ->
-                HabitCard(
-                    habit = habit,
-                    onIncrement = { viewModel.incrementProgress(habit) }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-
-        Spacer(modifier = Modifier.height(100.dp)) // Space for FAB
     }
 }
 
@@ -168,12 +177,13 @@ fun HabitCard(
 
     val progressFraction = when (val type = habit.type) {
         is HabitType.Measurable ->
-            if (type.target <= 0) 0f else (type.progress.toFloat() / type.target.toFloat()).coerceIn(
-                0f,
-                1f
-            )
-
+            if (type.target <= 0) 0f else (type.progress.toFloat() / type.target.toFloat()).coerceIn(0f, 1f)
         is HabitType.Binary -> 0f
+    }
+
+    val actionIcon = when (habit.type) {
+        is HabitType.Measurable -> Icons.Default.Add
+        is HabitType.Binary -> Icons.Default.Check
     }
 
     Row(
@@ -231,8 +241,11 @@ fun HabitCard(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Increment",
+                imageVector = actionIcon,
+                contentDescription = when (habit.type) {
+                    is HabitType.Measurable -> "Increment"
+                    is HabitType.Binary -> "Complete"
+                },
                 tint = Color.White,
                 modifier = Modifier.size(24.dp)
             )

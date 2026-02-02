@@ -44,14 +44,14 @@ class HabitAddViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             name = name ?: _uiState.value.name,
             description = description ?: _uiState.value.description,
-            hour = hour ?: _uiState.value.hour,
-            minute = minute ?: _uiState.value.minute,
+            hour = hour,
+            minute = minute,
             frequency = frequency ?: _uiState.value.frequency,
             type = type ?: _uiState.value.type,
             domain = domain ?: _uiState.value.domain,
-            target = target ?: _uiState.value.target,
-            unit = unit ?: _uiState.value.unit,
-            intervalDays = intervalDays ?: _uiState.value.intervalDays,
+            target = target,
+            unit = unit,
+            intervalDays = intervalDays,
         )
     }
 

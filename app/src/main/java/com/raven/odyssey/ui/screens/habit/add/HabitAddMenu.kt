@@ -32,7 +32,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +46,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -78,12 +81,19 @@ fun HabitAddMenu(
 
     val targetFocusRequester = remember { FocusRequester() }
 
+    val scrollState = rememberScrollState()
+
+    // Target input text shown to the user.
+    // IMPORTANT: We do NOT keep this continuously synced from uiState.target,
+    // otherwise any default target (like 1) will be immediately re-inserted and feel "indestructible".
+    val targetText = rememberSaveable { mutableStateOf("") }
+    val hasUserEditedTarget = rememberSaveable { mutableStateOf(false) }
+
+    // When leaving measurable mode, reset draft.
     LaunchedEffect(uiState.type) {
-        if (uiState.type is HabitType.Measurable) {
-            // Wait until the AnimatedVisibility content is composed.
-            kotlinx.coroutines.yield()
-            targetFocusRequester.requestFocus()
-            keyboardController?.show()
+        if (uiState.type !is HabitType.Measurable) {
+            targetText.value = ""
+            hasUserEditedTarget.value = false
         }
     }
 
@@ -91,7 +101,6 @@ fun HabitAddMenu(
         refocusName()
     }
 
-    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
@@ -143,18 +152,23 @@ fun HabitAddMenu(
         FrequencySegmented(
             selected = uiState.frequency,
             onSelect = { freq ->
-                // Keep the current behavior in HabitAddScreen: weekly => no time.
-                if (freq is HabitFrequency.Weekly) {
-                    viewModel.updateUiState(
-                        frequency = freq,
-                        intervalDays = null,
-                        hour = null,
-                        minute = null
-                    )
-                } else if (freq is HabitFrequency.Custom) {
-                    viewModel.updateUiState(frequency = freq, intervalDays = freq.intervalDays)
-                } else {
-                    viewModel.updateUiState(frequency = freq, intervalDays = null)
+                when (freq) {
+                    is HabitFrequency.Weekly -> {
+                        viewModel.updateUiState(
+                            frequency = freq,
+                            intervalDays = null,
+                            hour = null,
+                            minute = null
+                        )
+                    }
+
+                    is HabitFrequency.Custom -> {
+                        viewModel.updateUiState(frequency = freq, intervalDays = freq.intervalDays)
+                    }
+
+                    else -> {
+                        viewModel.updateUiState(frequency = freq, intervalDays = null)
+                    }
                 }
             },
         )
@@ -186,7 +200,7 @@ fun HabitAddMenu(
                     viewModel.updateUiState(
                         type = HabitType.Binary,
                         target = null,
-                        unit = null
+                        unit = null,
                     )
                 },
             )
@@ -194,13 +208,16 @@ fun HabitAddMenu(
                 label = "Measurable",
                 isSelected = uiState.type is HabitType.Measurable,
                 onClick = {
-                    val target = uiState.target ?: 1
                     val unit = uiState.unit ?: ""
+
                     viewModel.updateUiState(
-                        type = HabitType.Measurable(target, unit),
-                        target = target,
-                        unit = unit
+                        type = HabitType.Measurable(target = 1, unit = unit),
+                        unit = unit,
+                        target = null,
                     )
+
+                    targetText.value = ""
+                    hasUserEditedTarget.value = false
                 },
             )
         }
@@ -217,25 +234,57 @@ fun HabitAddMenu(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 SimpleOutlinedInput(
-                    value = (uiState.target ?: 1).toString(),
-                    onValueChange = { value ->
-                        val target = value.toIntOrNull() ?: 1
-                        viewModel.updateUiState(
-                            target = target,
-                            type = HabitType.Measurable(target = target, unit = uiState.unit ?: "")
-                        )
+                    value = targetText.value,
+                    onValueChange = { raw ->
+                        hasUserEditedTarget.value = true
+                        val filtered = raw.filter { it.isDigit() }
+                        targetText.value = filtered
+
+                        val parsedOrNull = filtered.toIntOrNull()
+
+                        if (parsedOrNull != null) {
+                            viewModel.updateUiState(
+                                target = parsedOrNull,
+                                type = HabitType.Measurable(
+                                    target = parsedOrNull,
+                                    unit = uiState.unit ?: ""
+                                )
+                            )
+                        } else {
+                            viewModel.updateUiState(
+                                target = null,
+                                type = HabitType.Measurable(target = 1, unit = uiState.unit ?: "")
+                            )
+                        }
                     },
                     label = "Target",
                     modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Next,
+                    ),
                     focusRequester = targetFocusRequester,
+                    onFocusLost = {
+                        val committed = targetText.value.toIntOrNull() ?: 1
+                        targetText.value = committed.toString()
+                        hasUserEditedTarget.value = true
+                        viewModel.updateUiState(
+                            target = committed,
+                            type = HabitType.Measurable(
+                                target = committed,
+                                unit = uiState.unit ?: ""
+                            )
+                        )
+                    }
                 )
 
                 SimpleOutlinedInput(
                     value = uiState.unit ?: "",
                     onValueChange = { value ->
+                        val effectiveTarget = uiState.target ?: 1
                         viewModel.updateUiState(
                             unit = value,
-                            type = HabitType.Measurable(target = uiState.target ?: 1, unit = value)
+                            type = HabitType.Measurable(target = effectiveTarget, unit = value)
                         )
                     },
                     label = "Unit",
@@ -443,6 +492,7 @@ private fun SimpleOutlinedInput(
     modifier: Modifier = Modifier,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     focusRequester: FocusRequester? = null,
+    onFocusLost: (() -> Unit)? = null,
 ) {
     Column(modifier = modifier) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
@@ -454,6 +504,11 @@ private fun SimpleOutlinedInput(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+                .onFocusChanged { state ->
+                    if (!state.isFocused) {
+                        onFocusLost?.invoke()
+                    }
+                }
                 .padding(top = 4.dp)
                 .background(AppColors.White, RoundedCornerShape(16.dp))
                 .padding(12.dp)

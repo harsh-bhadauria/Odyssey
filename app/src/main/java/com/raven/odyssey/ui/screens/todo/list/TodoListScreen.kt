@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,32 +60,75 @@ fun TodoListContent(
     todayTodos: List<Todo>,
     onTodoClick: (Todo) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .padding(horizontal = 16.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Spacer(modifier = Modifier.height(24.dp))
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
 
-        GreetingHeader(
-            name = "Ravenous",
-            subtitle = "Top ~~ramen~~ o' the morning"
-        )
+            GreetingHeader(
+                name = "Ravenous",
+                subtitle = "Top ~~ramen~~ o' the morning"
+            )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            // Overdue Section (only show if there are overdue todos)
+            if (overdueTodos.isNotEmpty()) {
+                TodoSection(
+                    title = "Overdue",
+                    count = overdueTodos.size,
+                    todos = overdueTodos,
+                    backgroundColor = AppColors.Red,
+                    countColor = AppColors.White,
+                    contentColor = Color.White,
+                    onTodoClick = onTodoClick
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Today Section (only show if there are today todos)
+            if (todayTodos.isNotEmpty()) {
+                TodoSection(
+                    title = "Today",
+                    count = todayTodos.size,
+                    todos = todayTodos,
+                    backgroundColor = Color.White,
+                    contentColor = Color.Black,
+                    countColor = AppColors.Teal,
+                    onTodoClick = onTodoClick
+                )
+            } else if (overdueTodos.isNotEmpty()) {
+                // No todos for today (but there are overdue ones)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Nothing scheduled for today.",
+                        style = Typo.Subtitle,
+                        color = AppColors.Black
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(100.dp)) // Space for FAB
+        }
+
+        // Truly centered empty-state when there are no todos at all.
         if (todayTodos.isEmpty() && overdueTodos.isEmpty()) {
-            // No todos at all – keep header visible and show an empty-state in the body area.
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 48.dp),
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Nothing scheduled for today",
                         style = Typo.Title,
@@ -100,54 +142,7 @@ fun TodoListContent(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(100.dp))
-            return
         }
-
-        // Overdue Section (only show if there are overdue todos)
-        if (overdueTodos.isNotEmpty()) {
-            TodoSection(
-                title = "Overdue",
-                count = overdueTodos.size,
-                todos = overdueTodos,
-                backgroundColor = AppColors.Red,
-                countColor = AppColors.White,
-                contentColor = Color.White,
-                onTodoClick = onTodoClick
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        // Today Section (only show if there are today todos)
-        if (todayTodos.isNotEmpty()) {
-            TodoSection(
-                title = "Today",
-                count = todayTodos.size,
-                todos = todayTodos,
-                backgroundColor = Color.White,
-                contentColor = Color.Black,
-                countColor = AppColors.Teal,
-                onTodoClick = onTodoClick
-            )
-        } else {
-            // No todos for today (but there are overdue ones) – show message under header.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Nothing scheduled for today.",
-                    style = Typo.Subtitle,
-                    color = AppColors.Black
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(100.dp)) // Space for FAB
     }
 }
 
@@ -166,13 +161,23 @@ fun GreetingHeader(
         )
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Parsing the "~~" for strikethrough logic
+        // Keep support for the "~~" strikethrough style used by the caller.
         val annotatedString = buildAnnotatedString {
-            append("Top ")
-            withStyle(style = SpanStyle(textDecoration = TextDecoration.LineThrough)) {
-                append("ramen")
+            val parts = subtitle.split("~~")
+            if (parts.size == 1) {
+                append(subtitle)
+            } else {
+                // Alternate normal/strikethrough segments
+                parts.forEachIndexed { index, part ->
+                    if (index % 2 == 1) {
+                        withStyle(style = SpanStyle(textDecoration = TextDecoration.LineThrough)) {
+                            append(part)
+                        }
+                    } else {
+                        append(part)
+                    }
+                }
             }
-            append(" o' the morning")
         }
 
         Text(

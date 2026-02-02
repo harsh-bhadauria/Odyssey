@@ -69,7 +69,7 @@ fun HabitEntity.toDomain(): Habit {
     val domainType = when (this.habitType) {
         "Binary" -> HabitType.Binary
         "Measurable" -> HabitType.Measurable(
-            target = this.target ?: 0,
+            target = this.target ?: 1,
             unit = this.unit ?: "",
             progress = this.progress ?: 0
         )
