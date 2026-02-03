@@ -31,16 +31,27 @@ class HabitListViewModel @Inject constructor(
 
     private fun loadHabits() {
         viewModelScope.launch {
-            habitRepository.getDueHabits(System.currentTimeMillis()).map { habitsList ->
-                habitsList.map { habitEntity ->
-                    habitEntity.toDomain()
+            habitRepository.getDueHabits(System.currentTimeMillis())
+                .map { habitsList ->
+                    habitsList
+                        .map { habitEntity -> habitEntity.toDomain() }
+                        // Presentation rule: show Binary grid items first, then Measurable cards.
+                        .sortedWith(
+                            compareBy<Habit> { habit ->
+                                when (habit.type) {
+                                    is HabitType.Binary -> 0
+                                    is HabitType.Measurable -> 1
+                                }
+                            }.thenBy { it.nextDue }
+                        )
                 }
-            }.collect { habits ->
-                _uiState.value = HabitListUiState(
-                    habits = habits,
-                    isLoading = false
-                )
-            }
+                .collect { habits ->
+                    _uiState.value = _uiState.value.copy(
+                        habits = habits,
+                        isLoading = false,
+                        error = null
+                    )
+                }
         }
     }
 

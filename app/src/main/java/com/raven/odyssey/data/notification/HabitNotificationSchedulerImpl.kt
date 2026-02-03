@@ -21,14 +21,18 @@ class HabitNotificationSchedulerImpl(
         val calendar = Calendar.getInstance().apply {
             timeInMillis = nextDue
         }
+
+        val notificationId = NotificationReceiver.habitNotificationId(habit.id)
+
         val intent = Intent(context, NotificationReceiver::class.java).apply {
-            putExtra("notification_id", habit.id)
+            putExtra("notification_id", notificationId)
             putExtra("title", habit.name)
             putExtra("description", habit.description)
+            putExtra(NotificationReceiver.EXTRA_NOTIFICATION_TYPE, NotificationReceiver.TYPE_HABIT)
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            habit.id.toInt(),
+            NotificationReceiver.habitRequestCode(habit.id),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -45,13 +49,13 @@ class HabitNotificationSchedulerImpl(
         val intent = Intent(context, NotificationReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            habitId.toInt(),
+            NotificationReceiver.habitRequestCode(habitId),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val alarmManager = context.getSystemService(ALARM_SERVICE) as AlarmManager
         alarmManager.cancel(pendingIntent)
 
-        NotificationManagerCompat.from(context).cancel(habitId.toInt())
+        NotificationManagerCompat.from(context).cancel(NotificationReceiver.habitNotificationId(habitId).toInt())
     }
 }

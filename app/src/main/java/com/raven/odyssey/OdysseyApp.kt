@@ -20,7 +20,7 @@ class OdysseyApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        NotificationChannelUtil.createNotificationChannel(this)
+        NotificationChannelUtil.createNotificationChannels(this)
         ProcessLifecycleOwner.get().lifecycleScope.launch {
             habitDueUpdater.updateHabitsNextDueToFuture()
             notificationRefresher.refreshAllNotifications()

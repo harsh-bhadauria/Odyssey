@@ -13,23 +13,30 @@ import com.raven.odyssey.domain.notification.NotificationScheduler
 import java.util.Calendar
 
 class NotificationSchedulerImpl(private val context: Context) : NotificationScheduler {
+
     @RequiresPermission(Manifest.permission.SCHEDULE_EXACT_ALARM)
     override fun scheduleNotification(todo: Todo) {
         val dueTime = todo.dueTime
         val calendar = Calendar.getInstance().apply {
             timeInMillis = dueTime
         }
+
+        val notificationId = NotificationReceiver.todoNotificationId(todo.id)
+
         val intent = Intent(context, NotificationReceiver::class.java).apply {
-            putExtra("notification_id", todo.id)
+            putExtra("notification_id", notificationId)
             putExtra("title", todo.title)
             putExtra("description", todo.description)
+            putExtra(NotificationReceiver.EXTRA_NOTIFICATION_TYPE, NotificationReceiver.TYPE_TODO)
         }
+
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            todo.id.toInt(),
+            NotificationReceiver.todoRequestCode(todo.id),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
         val alarmManager = context.getSystemService(ALARM_SERVICE) as AlarmManager
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
@@ -40,16 +47,18 @@ class NotificationSchedulerImpl(private val context: Context) : NotificationSche
 
     override fun cancelNotification(todoId: Long) {
         val intent = Intent(context, NotificationReceiver::class.java)
+
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            todoId.toInt(),
+            NotificationReceiver.todoRequestCode(todoId),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
         val alarmManager = context.getSystemService(ALARM_SERVICE) as AlarmManager
         alarmManager.cancel(pendingIntent)
 
-        NotificationManagerCompat.from(context).cancel(todoId.toInt())
+        NotificationManagerCompat.from(context).cancel(NotificationReceiver.todoNotificationId(todoId).toInt())
     }
 
 }
