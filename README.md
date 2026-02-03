@@ -3,9 +3,12 @@
 <h1></h1>
 
 <br>
+
 Odyssey is a minimalist Android habit tracker designed for people who check their phones every five seconds but still forget to drink water.
 
-It combines a **peaceful, soulful UI** with a **relentless notification system**. The goal isn't just to list tasks; it's to close the gap between *intending* to do something and actually *remembering* to do it.
+<br>
+
+It pairs a zero-clutter interface with a relentless notification system. The goal isn't just to list tasks; it's to close the gap between *intending* to do something and actually *remembering* to do it.
 
 <br>
 
@@ -62,7 +65,7 @@ Odyssey is built with modern Android standards, strictly adhering to **Clean Arc
 * **DI:** Hilt (`@HiltViewModel`)
 * **Async:** Coroutines + Flow (`StateFlow` for UI state)
 * **Persistence:** Room Database
-* **UI:** XML / ViewBinding (with Material Design components)
+* **UI:** Jetpack Compose
 
 ### The Repository Shape
 
@@ -86,8 +89,8 @@ The codebase is separated into three distinct layers to ensure separation of con
 3. Sync Gradle.
 4. Run on device (Notifications permission required for the magic to work).
 
----
+<h1></h1>
 
 *"Top ~~ramen~~ o' the morning."* 🍜
 
----
+<h1></h1>
