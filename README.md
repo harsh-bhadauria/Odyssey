@@ -79,8 +79,10 @@ The codebase is separated into three distinct layers to ensure separation of con
 
 ## Future Roadmap 🔮
 
+* **Dark Mode**: Yes, this should've been there since the beginning.
+* **Haptics & Animation**: Visual feedback as well as haptics for that sweet dopamine hit.
 * **Gamification:** A reward system for consistent streaks.
-* **Domains Expansion:** Deeper stats per "Area of Life."
+* **Streaks & Heatmaps**: Because who doesn't wanna see boxes turning green?
 
 ## Building the project
 
