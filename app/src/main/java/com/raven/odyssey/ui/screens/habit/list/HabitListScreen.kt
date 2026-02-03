@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -15,10 +16,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -32,9 +35,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.raven.odyssey.domain.model.Habit
+import com.raven.odyssey.domain.model.HabitFrequency
 import com.raven.odyssey.domain.model.HabitType
 import com.raven.odyssey.ui.theme.AppColors
 import com.raven.odyssey.ui.theme.Typo
@@ -46,76 +51,89 @@ fun HabitListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    val weeklyHabits = uiState.habits.filter { it.type is HabitType.Measurable }
-    val todayHabits = uiState.habits.filter { it.type is HabitType.Binary }
+    val weeklyHabits = uiState.habits.filter { it.frequency is HabitFrequency.Weekly }
+    val todayHabits = uiState.habits.filter { it.frequency is HabitFrequency.Daily }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState())
+        LazyVerticalStaggeredGrid(
+            columns = StaggeredGridCells.Fixed(2),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 100.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalItemSpacing = 12.dp
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            item(span = StaggeredGridItemSpan.FullLine) {
+                HabitHeader()
+            }
 
-            HabitHeader()
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // "This Week" Section (only show if there are weekly habits)
             if (weeklyHabits.isNotEmpty()) {
-                Text(
-                    text = "This Week",
-                    style = Typo.Title,
-                    color = AppColors.Black
-                )
+                item(span = StaggeredGridItemSpan.FullLine) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                item(span = StaggeredGridItemSpan.FullLine) {
+                    Text(
+                        text = "This Week",
+                        style = Typo.Title,
+                        color = AppColors.Black
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // List of Weekly Habits
-                weeklyHabits.forEach { habit ->
-                    HabitCard(
+                items(
+                    items = weeklyHabits,
+                    key = { it.id },
+                    span = { habit ->
+                        when (habit.type) {
+                            is HabitType.Measurable -> StaggeredGridItemSpan.FullLine
+                            is HabitType.Binary -> StaggeredGridItemSpan.SingleLane
+                        }
+                    }
+                ) { habit ->
+                    HabitListItemCard(
                         habit = habit,
-                        onIncrement = {
+                        onAction = {
                             when (habit.type) {
                                 is HabitType.Measurable -> viewModel.incrementProgress(habit)
                                 is HabitType.Binary -> viewModel.completeHabit(habit)
                             }
                         }
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                item(span = StaggeredGridItemSpan.FullLine) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
             }
 
-            // "Today" Section (only show if there are today habits)
             if (todayHabits.isNotEmpty()) {
-                Text(
-                    text = "Today",
-                    style = Typo.Title,
-                    color = AppColors.Black
-                )
+                item(span = StaggeredGridItemSpan.FullLine) {
+                    Text(
+                        text = "Today",
+                        style = Typo.Title,
+                        color = AppColors.Black
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // List of Daily Habits
-                todayHabits.forEach { habit ->
-                    HabitCard(
+                items(
+                    items = todayHabits,
+                    key = { it.id },
+                    span = { habit ->
+                        when (habit.type) {
+                            is HabitType.Measurable -> StaggeredGridItemSpan.FullLine
+                            is HabitType.Binary -> StaggeredGridItemSpan.SingleLane
+                        }
+                    }
+                ) { habit ->
+                    HabitListItemCard(
                         habit = habit,
-                        onIncrement = {
+                        onAction = {
                             when (habit.type) {
                                 is HabitType.Measurable -> viewModel.incrementProgress(habit)
                                 is HabitType.Binary -> viewModel.completeHabit(habit)
                             }
                         }
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
-
-            Spacer(modifier = Modifier.height(100.dp)) // Space for FAB
         }
 
         // Truly centered empty-state when there are no habits at all.
@@ -134,7 +152,7 @@ fun HabitListScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "You're all caught up — add a habit to get started.",
+                        text = "You're all caught up!",
                         style = Typo.Subtitle,
                         color = AppColors.Black
                     )
@@ -144,6 +162,19 @@ fun HabitListScreen(
     }
 }
 
+@Composable
+private fun HabitListItemCard(
+    habit: Habit,
+    onAction: () -> Unit
+) {
+    when (habit.type) {
+        is HabitType.Measurable -> HabitCard(habit = habit, onIncrement = onAction)
+        is HabitType.Binary -> BinaryHabitGridCard(
+            habit = habit,
+            onToggleComplete = onAction
+        )
+    }
+}
 
 @Composable
 fun HabitHeader() {
@@ -164,6 +195,56 @@ fun HabitHeader() {
 }
 
 @Composable
+private fun BinaryHabitGridCard(
+    habit: Habit,
+    onToggleComplete: () -> Unit
+) {
+    val themeColor = habit.domain.color
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
+            .clickable(onClick = onToggleComplete),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = habit.name,
+                style = Typo.Body,
+                color = AppColors.Black,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(themeColor.copy(alpha = 1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Complete",
+                    tint = AppColors.White,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun HabitCard(
     habit: Habit,
     onIncrement: () -> Unit
@@ -172,12 +253,13 @@ fun HabitCard(
 
     val progressText = when (val type = habit.type) {
         is HabitType.Measurable -> "${type.progress} / ${type.target} ${type.unit}"
-        is HabitType.Binary -> "—"
+        is HabitType.Binary -> ""
     }
 
     val progressFraction = when (val type = habit.type) {
         is HabitType.Measurable ->
             if (type.target <= 0) 0f else (type.progress.toFloat() / type.target.toFloat()).coerceIn(0f, 1f)
+
         is HabitType.Binary -> 0f
     }
 

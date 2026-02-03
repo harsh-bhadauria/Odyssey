@@ -32,25 +32,21 @@ class HabitAddViewModel @Inject constructor(
     fun updateUiState(
         name: String? = null,
         description: String? = null,
-        hour: Int? = null,
-        minute: Int? = null,
         frequency: HabitFrequency? = null,
         type: HabitType? = null,
         domain: Domain? = null,
-        target: Int? = null,
+        target: String? = null,
         unit: String? = null,
         intervalDays: Int? = null,
     ) {
         _uiState.value = _uiState.value.copy(
             name = name ?: _uiState.value.name,
             description = description ?: _uiState.value.description,
-            hour = hour,
-            minute = minute,
             frequency = frequency ?: _uiState.value.frequency,
             type = type ?: _uiState.value.type,
             domain = domain ?: _uiState.value.domain,
-            target = target,
-            unit = unit,
+            target = target ?: _uiState.value.target,
+            unit = unit?: _uiState.value.unit,
             intervalDays = intervalDays,
         )
     }
@@ -59,8 +55,6 @@ class HabitAddViewModel @Inject constructor(
         if (_uiState.value.name.isBlank()) return
         viewModelScope.launch {
             val calendar = Calendar.getInstance()
-            calendar.set(Calendar.HOUR_OF_DAY, _uiState.value.hour ?: 0)
-            calendar.set(Calendar.MINUTE, _uiState.value.minute ?: 0)
             calendar.set(Calendar.SECOND, 0)
             calendar.set(Calendar.MILLISECOND, 0)
 
@@ -78,9 +72,10 @@ class HabitAddViewModel @Inject constructor(
                 else -> _uiState.value.frequency
             }
             val type = when (_uiState.value.type) {
+
                 is HabitType.Measurable -> HabitType.Measurable(
-                    target = _uiState.value.target ?: 1,
-                    unit = _uiState.value.unit ?: ""
+                    target = _uiState.value.target.toIntOrNull() ?: 1,
+                    unit = _uiState.value.unit
                 )
 
                 else -> _uiState.value.type

@@ -206,7 +206,7 @@ fun TodoAddMenu(
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut(),
             ) {
-                Column(modifier = Modifier.padding(top = 12.dp)) {
+                Column(modifier = Modifier.padding(bottom = 12.dp)) {
                     DomainChoiceGrid2x3(
                         selected = uiState.selectedDomain,
                         onSelect = {

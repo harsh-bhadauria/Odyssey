@@ -12,11 +12,11 @@ val Pink40 = Color(0xFF7D5260)
 object AppColors {
     // The specific colors you extracted from the image
     val Purple = Color(0xFF813EE0)
-    val Blue = Color(0xFF0077C4)
+    val Blue = Color(0xFF0080D5)
     val Teal = Color(0xFF00B3B2)
     val Yellow = Color(0xFFEF9A00)
-    val Red = Color(0xFFD1205B)
-    val Pink = Color(0xFFEC41A4)
+    val Red = Color(0xFFE15265)
+    val Pink = Color(0xFFE369BC)
 
     // Helper colors for backgrounds/text
     val Background = Color(0xFFF2F1F6)

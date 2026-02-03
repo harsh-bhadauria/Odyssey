@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,12 +30,10 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.raven.odyssey.domain.model.Todo
 import com.raven.odyssey.ui.theme.AppColors
-import com.raven.odyssey.ui.theme.OdysseyTheme
 import com.raven.odyssey.ui.theme.Typo
 import java.util.Calendar
 import java.util.Locale
@@ -203,8 +200,8 @@ fun TodoSection(
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(all = 12.dp)) {
-            // Section Header with Count Badge
+        Column(modifier = Modifier.padding(top = 12.dp, start = 12.dp, end = 12.dp, bottom = 4.dp)) {
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -216,7 +213,6 @@ fun TodoSection(
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
-
 
                 Box(
                     contentAlignment = Alignment.Center,
@@ -231,9 +227,8 @@ fun TodoSection(
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
 
-
-            // Todo Items
             todos.forEach { todo ->
                 TodoItem(
                     todo = todo,
@@ -255,10 +250,9 @@ fun TodoItem(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp)
             .clickable(onClick = { onClick(todo) })
+            .padding(vertical = 8.dp)
     ) {
-        // Custom Radio Button Look
         Box(
             modifier = Modifier
                 .size(20.dp)
@@ -275,18 +269,6 @@ fun TodoItem(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // TODO: Rewards Display
-//        if (todo.tagIcon != null) {
-//            // Placeholder for the custom icons in the image
-//            Icon(
-//                imageVector = todo.tagIcon,
-//                contentDescription = null,
-//                tint = AppColors.PurpleTag, // Example tint
-//                modifier = Modifier.size(16.dp)
-//            )
-//            Spacer(modifier = Modifier.width(16.dp))
-//        }
-
         if (todo.dueTime > 0L) {
             val cal = Calendar.getInstance().apply { timeInMillis = todo.dueTime }
             Text(
@@ -298,77 +280,6 @@ fun TodoItem(
                 ),
                 style = Typo.Time,
                 color = textColor
-            )
-        }
-    }
-}
-
-private fun previewTodos(): List<Todo> =
-    listOf(
-        Todo(id = 1, title = "Finalize Odyssey UI", description = "Polish spacing", dueTime = 930, domain = com.raven.odyssey.domain.model.Domain.Void),
-        Todo(id = 2, title = "Reply to emails", description = null, dueTime = 1045, domain = com.raven.odyssey.domain.model.Domain.Void),
-        Todo(id = 3, title = "Grocery run", description = "Ramen (ironically)", dueTime = 1300, domain = com.raven.odyssey.domain.model.Domain.Void),
-        Todo(id = 4, title = "Ship release build", description = "v0.1.0", dueTime = 1700, domain = com.raven.odyssey.domain.model.Domain.Void)
-    )
-
-@Preview(name = "Todo list – Light", showBackground = true)
-@Composable
-private fun TodoListScreenPreview_Light() {
-    OdysseyTheme(darkTheme = false, dynamicColor = false) {
-        Surface {
-            TodoListContent(
-                overdueTodos = previewTodos(),
-                todayTodos = previewTodos(),
-                onTodoClick = {}
-            )
-        }
-    }
-}
-
-@Preview(name = "Todo list – Dark", showBackground = true)
-@Composable
-private fun TodoListScreenPreview_Dark() {
-    OdysseyTheme(darkTheme = true, dynamicColor = false) {
-        Surface {
-            TodoListContent(
-                overdueTodos = previewTodos(),
-                todayTodos = previewTodos(),
-                onTodoClick = {}
-            )
-        }
-    }
-}
-
-@Preview(name = "Todo list – Empty", showBackground = true)
-@Composable
-private fun TodoListScreenPreview_Empty() {
-    OdysseyTheme(darkTheme = false, dynamicColor = false) {
-        Surface {
-            TodoListContent(
-                overdueTodos = emptyList(),
-                todayTodos = emptyList(),
-                onTodoClick = {}
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun TodoListPreview() {
-    val sampleTodos = listOf(
-        Todo(id = 1, title = "Finalize Odyssey UI", description = "Polish spacing", dueTime = 930, domain = com.raven.odyssey.domain.model.Domain.Void),
-        Todo(id = 2, title = "Reply to emails", description = null, dueTime = 1045, domain = com.raven.odyssey.domain.model.Domain.Void),
-        Todo(id = 3, title = "Grocery run", description = "Ramen (ironically)", dueTime = 1300, domain = com.raven.odyssey.domain.model.Domain.Void),
-        Todo(id = 4, title = "Ship release build", description = "v0.1.0", dueTime = 1700, domain = com.raven.odyssey.domain.model.Domain.Void)
-    )
-
-    OdysseyTheme {
-        Surface {
-            TodoListContent(
-                overdueTodos = sampleTodos,
-                todayTodos = sampleTodos,
-                onTodoClick = {}
             )
         }
     }

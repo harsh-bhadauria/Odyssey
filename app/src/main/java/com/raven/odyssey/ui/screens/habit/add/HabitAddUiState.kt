@@ -11,11 +11,9 @@ data class HabitAddUiState(
     val frequency: HabitFrequency = HabitFrequency.Daily,
     val type: HabitType = HabitType.Binary,
     val domain: Domain = Domain.Void,
-    val hour: Int? = null,
-    val minute: Int? = null,
     // For Measurable type
-    val target: Int? = null,
-    val unit: String? = null,
+    val target: String = "",
+    val unit: String = "",
     // For Custom frequency
     val intervalDays: Int? = null,
 )
