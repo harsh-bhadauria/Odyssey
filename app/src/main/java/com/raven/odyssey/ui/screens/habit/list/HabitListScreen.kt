@@ -33,6 +33,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,7 +53,8 @@ fun HabitListScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     val weeklyHabits = uiState.habits.filter { it.frequency is HabitFrequency.Weekly }
-    val todayHabits = uiState.habits.filter { it.frequency is HabitFrequency.Daily }
+    val todayHabits = uiState.habits.filter { it.frequency is HabitFrequency.Daily || it.frequency is HabitFrequency.Custom }
+    val completedHabits = uiState.completedHabits
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyVerticalStaggeredGrid(
@@ -74,7 +76,8 @@ fun HabitListScreen(
                     Text(
                         text = "This Week",
                         style = Typo.Title,
-                        color = AppColors.Black
+                        color = AppColors.Black,
+                        modifier = Modifier.padding(horizontal = 8.dp)
                     )
                 }
 
@@ -109,7 +112,8 @@ fun HabitListScreen(
                     Text(
                         text = "Today",
                         style = Typo.Title,
-                        color = AppColors.Black
+                        color = AppColors.Black,
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
                 }
 
@@ -134,10 +138,43 @@ fun HabitListScreen(
                     )
                 }
             }
+
+            if (completedHabits.isNotEmpty()) {
+                item(span = StaggeredGridItemSpan.FullLine) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "Completed",
+                        style = Typo.Title,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+
+                items(
+                    items = completedHabits,
+                    key = { it.id },
+                    span = { StaggeredGridItemSpan.FullLine }
+                ) { habit ->
+                    // Render explicitly as completed state (e.g., lower opacity or checkmark)
+                    // For measurable habits, we want to show full progress visually
+                    val displayHabit = if (habit.type is HabitType.Measurable) {
+                         habit.copy(type = habit.type.copy(progress = habit.type.target))
+                    } else {
+                        habit
+                    }
+
+                    Box(modifier = Modifier.alpha(0.6f)) {
+                         HabitListItemCard(
+                            habit = displayHabit,
+                            onAction = { } // No-op for now, or implement undo
+                        )
+                    }
+                }
+            }
         }
 
         // Truly centered empty-state when there are no habits at all.
-        if (weeklyHabits.isEmpty() && todayHabits.isEmpty()) {
+        if (weeklyHabits.isEmpty() && todayHabits.isEmpty() && completedHabits.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -191,6 +228,8 @@ fun HabitHeader() {
             text = "Another day, another day, another day",
             style = Typo.Subtitle
         )
+
+        Spacer(Modifier.height(12.dp))
     }
 }
 

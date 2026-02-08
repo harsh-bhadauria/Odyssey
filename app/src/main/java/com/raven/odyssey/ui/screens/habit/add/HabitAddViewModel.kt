@@ -55,6 +55,9 @@ class HabitAddViewModel @Inject constructor(
         if (_uiState.value.name.isBlank()) return
         viewModelScope.launch {
             val calendar = Calendar.getInstance()
+            // Normalize to start of day
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
             calendar.set(Calendar.SECOND, 0)
             calendar.set(Calendar.MILLISECOND, 0)
 

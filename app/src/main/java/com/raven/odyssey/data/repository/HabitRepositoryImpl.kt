@@ -1,7 +1,9 @@
 package com.raven.odyssey.data.repository
 
 import com.raven.odyssey.data.dao.HabitDao
+import com.raven.odyssey.data.dao.HabitLogDao
 import com.raven.odyssey.data.entity.HabitEntity
+import com.raven.odyssey.data.entity.HabitLogEntity
 import com.raven.odyssey.domain.repository.HabitRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -9,7 +11,8 @@ import java.util.Calendar
 import javax.inject.Inject
 
 class HabitRepositoryImpl @Inject constructor(
-    private val habitDao: HabitDao
+    private val habitDao: HabitDao,
+    private val habitLogDao: HabitLogDao
 ) : HabitRepository {
     override fun getAllHabits(): Flow<List<HabitEntity>> = habitDao.getAllHabits()
 
@@ -44,5 +47,18 @@ class HabitRepositoryImpl @Inject constructor(
                 entity.nextDue <= currentTime
             }
         }
+    }
+
+    override fun getCompletedHabits(startOfDay: Long, endOfDay: Long): Flow<List<HabitEntity>> {
+        return habitDao.getCompletedHabits(startOfDay, endOfDay)
+    }
+
+    override suspend fun logHabitCompletion(habitId: Long, timestamp: Long) {
+        habitLogDao.insertLog(
+            HabitLogEntity(
+                habitId = habitId,
+                timestamp = timestamp
+            )
+        )
     }
 }

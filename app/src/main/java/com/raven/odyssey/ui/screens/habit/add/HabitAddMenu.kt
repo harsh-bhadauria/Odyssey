@@ -123,15 +123,15 @@ fun HabitAddMenu(
             keyboardActions = KeyboardActions(onDone = { submit() }),
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        CustomTransparentTextField(
-            value = uiState.description,
-            onValueChange = { viewModel.updateUiState(description = it) },
-            placeholder = "Description",
-            textStyle = TextStyle(fontSize = 14.sp, color = Color.Gray),
-            modifier = Modifier.fillMaxWidth(),
-        )
+//        Spacer(modifier = Modifier.height(8.dp))
+//
+//        CustomTransparentTextField(
+//            value = uiState.description,
+//            onValueChange = { viewModel.updateUiState(description = it) },
+//            placeholder = "Description",
+//            textStyle = TextStyle(fontSize = 14.sp, color = Color.Gray),
+//            modifier = Modifier.fillMaxWidth(),
+//        )
 
         Spacer(modifier = Modifier.height(16.dp))
 

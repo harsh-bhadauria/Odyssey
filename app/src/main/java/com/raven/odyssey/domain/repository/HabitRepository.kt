@@ -10,4 +10,6 @@ interface HabitRepository {
     suspend fun updateHabit(habit: HabitEntity)
     suspend fun deleteHabit(habit: HabitEntity)
     fun getDueHabits(currentTime: Long): Flow<List<HabitEntity>>
+    fun getCompletedHabits(startOfDay: Long, endOfDay: Long): Flow<List<HabitEntity>>
+    suspend fun logHabitCompletion(habitId: Long, timestamp: Long)
 }

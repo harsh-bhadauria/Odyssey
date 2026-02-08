@@ -12,6 +12,7 @@ import com.raven.odyssey.domain.repository.HabitRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -31,11 +32,23 @@ class HabitListViewModel @Inject constructor(
 
     private fun loadHabits() {
         viewModelScope.launch {
-            habitRepository.getDueHabits(System.currentTimeMillis())
+            val calendar = Calendar.getInstance()
+            calendar.set(Calendar.HOUR_OF_DAY, 23)
+            calendar.set(Calendar.MINUTE, 59)
+            calendar.set(Calendar.SECOND, 59)
+            calendar.set(Calendar.MILLISECOND, 999)
+            val endOfDay = calendar.timeInMillis
+
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            val startOfDay = calendar.timeInMillis
+
+            val dueHabitsFlow = habitRepository.getDueHabits(endOfDay)
                 .map { habitsList ->
                     habitsList
                         .map { habitEntity -> habitEntity.toDomain() }
-                        // Presentation rule: show Binary grid items first, then Measurable cards.
                         .sortedWith(
                             compareBy<Habit> { habit ->
                                 when (habit.type) {
@@ -45,60 +58,75 @@ class HabitListViewModel @Inject constructor(
                             }.thenBy { it.nextDue }
                         )
                 }
-                .collect { habits ->
-                    _uiState.value = _uiState.value.copy(
-                        habits = habits,
-                        isLoading = false,
-                        error = null
-                    )
+
+            val completedHabitsFlow = habitRepository.getCompletedHabits(startOfDay, endOfDay)
+                .map { habitsList ->
+                    habitsList.map { it.toDomain() }
                 }
+
+            combine(dueHabitsFlow, completedHabitsFlow) { due, completed ->
+                HabitListUiState(
+                    habits = due,
+                    completedHabits = completed,
+                    isLoading = false,
+                    error = null
+                )
+            }.collect { state ->
+                _uiState.value = state
+            }
         }
     }
 
     fun completeHabit(habit: Habit) {
         viewModelScope.launch {
-            val now = System.currentTimeMillis()
-            val dueCal = Calendar.getInstance().apply { timeInMillis = habit.nextDue }
-            val hour = dueCal.get(Calendar.HOUR_OF_DAY)
-            val minute = dueCal.get(Calendar.MINUTE)
-            when (habit.frequency) {
+            // Normalize "Today" to midnight
+            val calendar = Calendar.getInstance()
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            val todayMidnight = calendar.timeInMillis
+
+            // For Weekly habits, the "Start of Week" is Monday.
+
+            val nextDueMillis = when (habit.frequency) {
                 is HabitFrequency.Daily -> {
-                    // Advance to same time tomorrow
-                    dueCal.timeInMillis = habit.nextDue
-                    do {
-                        dueCal.add(Calendar.DATE, 1)
-                    } while (dueCal.timeInMillis <= now)
+                    // Next due is Tomorrow (Today + 1 day)
+                    calendar.timeInMillis = todayMidnight
+                    calendar.add(Calendar.DAY_OF_YEAR, 1)
+                    calendar.timeInMillis
                 }
 
                 is HabitFrequency.Weekly -> {
-                    // Advance to same time next week on the scheduled weekday
-                    dueCal.timeInMillis = habit.nextDue
-                    val dayOfWeek = dueCal.get(Calendar.DAY_OF_WEEK)
-                    val nowCal = Calendar.getInstance().apply { timeInMillis = now }
-                    val daysUntilNext = (dayOfWeek - nowCal.get(Calendar.DAY_OF_WEEK) + 7) % 7
-                    dueCal.timeInMillis = now
-                    dueCal.add(Calendar.DATE, if (daysUntilNext == 0) 7 else daysUntilNext)
+                    // Next occurrence of MONDAY, strictly after today.
+                    calendar.timeInMillis = todayMidnight
+                    val currentDoW = calendar.get(Calendar.DAY_OF_WEEK)
+                    val targetDoW = Calendar.MONDAY
+
+                    val daysUntilNext = (targetDoW - currentDoW + 7) % 7
+                    // If daysUntilNext is 0 (today is Monday), we want next week (7 days)
+                    val daysToAdd = if (daysUntilNext == 0) 7 else daysUntilNext
+
+                    calendar.add(Calendar.DAY_OF_YEAR, daysToAdd)
+                    calendar.timeInMillis
                 }
 
                 is HabitFrequency.Custom -> {
-                    // Advance to same time after interval
-                    dueCal.timeInMillis = habit.nextDue
-                    do {
-                        dueCal.add(Calendar.DATE, habit.frequency.intervalDays)
-                    } while (dueCal.timeInMillis <= now)
+                    // Next due is Today + Interval
+                    calendar.timeInMillis = todayMidnight
+                    calendar.add(Calendar.DAY_OF_YEAR, habit.frequency.intervalDays)
+                    calendar.timeInMillis
                 }
             }
-
-            dueCal.set(Calendar.HOUR_OF_DAY, hour)
-            dueCal.set(Calendar.MINUTE, minute)
 
             // Reset progress for measurable habits
             val updatedType = if (habit.type is HabitType.Measurable) {
                 (habit.type).copy(progress = 0)
             } else habit.type
-            val updatedHabit = habit.copy(nextDue = dueCal.timeInMillis, type = updatedType)
+            val updatedHabit = habit.copy(nextDue = nextDueMillis, type = updatedType)
 
             habitRepository.updateHabit(updatedHabit.toEntity())
+            habitRepository.logHabitCompletion(habit.id, System.currentTimeMillis())
             notificationScheduler.cancelNotification(habit.id)
             notificationScheduler.scheduleNotification(updatedHabit)
         }

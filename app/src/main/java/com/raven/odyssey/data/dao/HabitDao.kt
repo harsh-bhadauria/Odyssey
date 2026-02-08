@@ -32,4 +32,7 @@ interface HabitDao {
 
     @Query("SELECT * FROM habits")
     suspend fun getAllHabitsList(): List<HabitEntity>
+
+    @Query("SELECT h.* FROM habits h INNER JOIN habit_logs l ON h.id = l.habitId WHERE l.timestamp BETWEEN :startOfDay AND :endOfDay GROUP BY h.id ORDER BY MAX(l.timestamp) DESC")
+    fun getCompletedHabits(startOfDay: Long, endOfDay: Long): Flow<List<HabitEntity>>
 }
