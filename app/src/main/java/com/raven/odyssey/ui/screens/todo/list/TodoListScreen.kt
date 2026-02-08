@@ -1,5 +1,15 @@
 package com.raven.odyssey.ui.screens.todo.list
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,18 +36,32 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.raven.odyssey.domain.model.Todo
 import com.raven.odyssey.ui.theme.AppColors
 import com.raven.odyssey.ui.theme.Typo
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
 fun TodoListScreen(
@@ -87,6 +111,8 @@ fun TodoListContent(
                     countColor = AppColors.White,
                     contentColor = Color.White,
                     isExpanded = uiState.isOverdueExpanded,
+                    checkedFillColor = Color.White,
+                    checkedTextColor = AppColors.Red,
                     onHeaderClick = onToggleOverdue,
                     onTodoClick = onTodoClick
                 )
@@ -135,7 +161,8 @@ fun TodoListContent(
                     countColor = Color.Gray,
                     isExpanded = uiState.isCompletedExpanded,
                     onHeaderClick = onToggleCompleted,
-                    onTodoClick = onTodoClick
+                    onTodoClick = onTodoClick,
+                    isCompletedSection = true // Mark this section as completed
                 )
             }
 
@@ -219,15 +246,27 @@ fun TodoSection(
     countColor: Color,
     contentColor: Color,
     isExpanded: Boolean = true,
+    isCompletedSection: Boolean = false,
+    checkedFillColor: Color? = null,
+    checkedTextColor: Color = Color.White,
     onHeaderClick: () -> Unit = {},
     onTodoClick: (Todo) -> Unit
 ) {
     Card(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize()
     ) {
-        Column(modifier = Modifier.padding(top = 12.dp, start = 12.dp, end = 12.dp, bottom = if (isExpanded) 4.dp else 12.dp)) {
+        Column(
+            modifier = Modifier.padding(
+                top = 12.dp,
+                start = 12.dp,
+                end = 12.dp,
+                bottom = 12.dp
+            )
+        ) {
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -256,16 +295,31 @@ fun TodoSection(
                     )
                 }
             }
-            if (isExpanded) {
-                Spacer(modifier = Modifier.height(8.dp))
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                todos.forEach { item ->
-                    TodoItem(
-                        item = item,
-                        textColor = contentColor,
-                        backgroundColor = backgroundColor,
-                        onClick = { onTodoClick(item.todo) }
-                    )
+                    todos.forEach { item ->
+                        if (isCompletedSection) {
+                            CompletedTodoItem(
+                                item = item,
+                                textColor = contentColor,
+                                onClick = { onTodoClick(item.todo) }
+                            )
+                        } else {
+                            TodoItem(
+                                item = item,
+                                textColor = contentColor,
+                                checkedFillColor = checkedFillColor,
+                                checkedTextColor = checkedTextColor,
+                                onClick = { onTodoClick(item.todo) }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -273,36 +327,36 @@ fun TodoSection(
 }
 
 @Composable
-fun TodoItem(
+fun CompletedTodoItem(
     item: TodoItemUiState,
     textColor: Color,
-    backgroundColor: Color = Color.Transparent,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable {
+                performHapticFeedback(context)
+                onClick()
+            }
+            .padding(vertical = 8.dp, horizontal = 8.dp)
     ) {
-        val circleColor = if (item.isCompleted) textColor else Color.Transparent
-
         Box(
             modifier = Modifier
                 .size(20.dp)
                 .border(1.5.dp, textColor, CircleShape)
-                .background(circleColor, CircleShape),
+                .background(Color.Gray, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            if (item.isCompleted) {
-                Icon(
-                    imageVector = Icons.Rounded.Check,
-                    contentDescription = "Completed",
-                    tint = backgroundColor,
-                    modifier = Modifier.size(14.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.Rounded.Check,
+                contentDescription = "Completed",
+                tint = Color.White,
+                modifier = Modifier.size(14.dp)
+            )
         }
 
         Spacer(modifier = Modifier.width(16.dp))
@@ -310,7 +364,7 @@ fun TodoItem(
         Text(
             text = item.title,
             style = Typo.Body,
-            textDecoration = if (item.isCompleted) TextDecoration.LineThrough else null,
+            textDecoration = TextDecoration.LineThrough,
             color = textColor
         )
 
@@ -323,5 +377,119 @@ fun TodoItem(
                 color = textColor
             )
         }
+    }
+}
+
+@Composable
+fun TodoItem(
+    item: TodoItemUiState,
+    textColor: Color,
+    checkedFillColor: Color? = null,
+    checkedTextColor: Color = Color.White,
+    onClick: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var isChecked by remember(item.id, item.isCompleted) { mutableStateOf(item.isCompleted) }
+    val context = LocalContext.current
+
+    val fillFraction by animateFloatAsState(
+        targetValue = if (isChecked) 1f else 0f,
+        animationSpec = if (isChecked) tween(durationMillis = 500) else snap(),
+        label = "fill"
+    )
+
+    val animatedTextColor by animateColorAsState(
+        targetValue = if (isChecked) checkedTextColor else textColor,
+        label = "text"
+    )
+
+    val targetFillColor = checkedFillColor ?: item.todo.domain.color
+
+    val circleCheckedColor = if (checkedFillColor != null) checkedTextColor else Color.White
+
+    val animatedBorderColor by animateColorAsState(
+        targetValue = if (isChecked) circleCheckedColor else textColor,
+        label = "border"
+    )
+
+    val animatedCircleColor by animateColorAsState(
+        targetValue = if (isChecked) circleCheckedColor else Color.Transparent,
+        label = "circle"
+    )
+
+    val checkIconTint = checkedFillColor ?: targetFillColor
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable {
+                isChecked = !isChecked
+                performHapticFeedback(context)
+                scope.launch {
+                    delay(750)
+                    onClick()
+                }
+            }
+            .drawBehind {
+                drawRect(
+                    color = targetFillColor,
+                    size = size.copy(width = size.width * fillFraction)
+                )
+            }
+            .padding(vertical = 8.dp, horizontal = 8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .border(1.5.dp, animatedBorderColor, CircleShape)
+                .background(animatedCircleColor, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isChecked) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = "Completed",
+                    tint = checkIconTint,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Text(
+            text = item.title,
+            style = Typo.Body,
+            textDecoration = if (isChecked) TextDecoration.LineThrough else null,
+            color = animatedTextColor
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        if (item.formattedTime != null) {
+            Text(
+                text = item.formattedTime,
+                style = Typo.Time,
+                color = animatedTextColor
+            )
+        }
+    }
+}
+
+private fun performHapticFeedback(context: Context) {
+    val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+        manager.defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
+    } else {
+        vibrator.vibrate(VibrationEffect.createOneShot(20, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 }
