@@ -11,6 +11,8 @@ class TodoRepositoryImpl @Inject constructor(
 ) : TodoRepository {
     override fun getAllTodos(): Flow<List<TodoEntity>> = todoDao.getAllTodos()
 
+    override fun getCompletedTodos(): Flow<List<TodoEntity>> = todoDao.getCompletedTodos()
+
     override suspend fun insertTodo(todo: TodoEntity): Long = todoDao.insertTodo(todo)
 
     override suspend fun updateTodo(todo: TodoEntity) = todoDao.updateTodo(todo)

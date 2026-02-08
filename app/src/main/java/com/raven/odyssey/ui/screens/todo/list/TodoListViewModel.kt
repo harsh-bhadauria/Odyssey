@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -72,6 +73,18 @@ class TodoListViewModel @Inject constructor(
         _uiState.update { it.copy(selectedDate = selectedDate, weekStart = weekStart) }
     }
 
+    fun toggleOverdueExpanded() {
+        _uiState.update { it.copy(isOverdueExpanded = !it.isOverdueExpanded) }
+    }
+
+    fun toggleTodayExpanded() {
+        _uiState.update { it.copy(isTodayExpanded = !it.isTodayExpanded) }
+    }
+
+    fun toggleCompletedExpanded() {
+        _uiState.update { it.copy(isCompletedExpanded = !it.isCompletedExpanded) }
+    }
+
     fun loadTodos() {
         _uiState.update { it.copy(isLoading = true, error = null) }
 
@@ -88,17 +101,24 @@ class TodoListViewModel @Inject constructor(
                         .filter { !it.isCompleted }
                         .filter { it.dueTime in 1 until todayStart }
                         .sortedBy { it.dueTime }
+                        .map (::toUiState)
 
                     val today = todos
                         .filter { !it.isCompleted }
                         .filter { it.dueTime in todayStart until tomorrowStart }
                         .sortedBy { it.dueTime }
+                        .map (::toUiState)
+
+                    val completed = todos
+                        .filter { it.isCompleted }
+                        .sortedByDescending { it.dueTime }
+                        .map (::toUiState)
 
                     _uiState.update {
                         it.copy(
-                            todos = todos,
                             overdueTodos = overdue,
                             todayTodos = today,
+                            completedTodos = completed,
                             isLoading = false,
                             error = null
                         )
@@ -106,6 +126,40 @@ class TodoListViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    private fun toUiState(todo: Todo): TodoItemUiState {
+        val formattedTime = if (todo.dueTime > 0L) {
+            val cal = Calendar.getInstance().apply { timeInMillis = todo.dueTime }
+            String.format(
+                Locale.getDefault(),
+                "%02d:%02d",
+                cal.get(Calendar.HOUR_OF_DAY),
+                cal.get(Calendar.MINUTE)
+            )
+        } else null
+
+        return TodoItemUiState(
+            id = todo.id,
+            title = todo.title,
+            isCompleted = todo.isCompleted,
+            formattedTime = formattedTime,
+            todo = todo
+        )
+    }
+
+    fun toggleTodo(todo: Todo) {
+        viewModelScope.launch {
+            try {
+                val updatedTodo = todo.copy(isCompleted = !todo.isCompleted)
+                todoRepository.updateTodo(updatedTodo.toEntity())
+                if (updatedTodo.isCompleted) {
+                    notificationScheduler.cancelNotification(todo.id)
+                }
+            } catch (e: Exception) {
+                // Handle error
             }
         }
     }

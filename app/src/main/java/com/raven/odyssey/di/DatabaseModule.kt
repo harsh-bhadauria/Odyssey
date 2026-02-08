@@ -27,4 +27,7 @@ object DatabaseModule {
 
     @Provides
     fun provideTodoDao(db: AppDatabase): TodoDao = db.todoDao()
+
+    @Provides
+    fun provideHabitLogDao(db: AppDatabase): com.raven.odyssey.data.dao.HabitLogDao = db.habitLogDao()
 }

@@ -26,4 +26,7 @@ interface TodoDao {
 
     @Query("SELECT * FROM todos WHERE isCompleted = 0")
     suspend fun getIncompleteTodos(): List<TodoEntity>
+
+    @Query("SELECT * FROM todos WHERE isCompleted = 1")
+    fun getCompletedTodos(): Flow<List<TodoEntity>>
 }

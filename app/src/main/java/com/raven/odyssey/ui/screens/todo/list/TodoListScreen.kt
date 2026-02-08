@@ -17,8 +17,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -35,8 +38,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.raven.odyssey.domain.model.Todo
 import com.raven.odyssey.ui.theme.AppColors
 import com.raven.odyssey.ui.theme.Typo
-import java.util.Calendar
-import java.util.Locale
 
 @Composable
 fun TodoListScreen(
@@ -45,17 +46,21 @@ fun TodoListScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     TodoListContent(
-        overdueTodos = uiState.overdueTodos,
-        todayTodos = uiState.todayTodos,
-        onTodoClick = { viewModel.deleteTodo(it) }
+        uiState = uiState,
+        onTodoClick = { viewModel.toggleTodo(it) },
+        onToggleOverdue = viewModel::toggleOverdueExpanded,
+        onToggleToday = viewModel::toggleTodayExpanded,
+        onToggleCompleted = viewModel::toggleCompletedExpanded
     )
 }
 
 @Composable
 fun TodoListContent(
-    overdueTodos: List<Todo>,
-    todayTodos: List<Todo>,
-    onTodoClick: (Todo) -> Unit
+    uiState: TodoListUiState,
+    onTodoClick: (Todo) -> Unit,
+    onToggleOverdue: () -> Unit,
+    onToggleToday: () -> Unit,
+    onToggleCompleted: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -66,39 +71,43 @@ fun TodoListContent(
             Spacer(modifier = Modifier.height(24.dp))
 
             GreetingHeader(
-                name = "Ravenous",
-                subtitle = "Top ~~ramen~~ o' the morning"
+                name = uiState.greetingName,
+                subtitle = uiState.greetingSubtitle
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Overdue Section (only show if there are overdue todos)
-            if (overdueTodos.isNotEmpty()) {
+            // Overdue Section
+            if (uiState.overdueTodos.isNotEmpty()) {
                 TodoSection(
                     title = "Overdue",
-                    count = overdueTodos.size,
-                    todos = overdueTodos,
+                    count = uiState.overdueTodos.size,
+                    todos = uiState.overdueTodos,
                     backgroundColor = AppColors.Red,
                     countColor = AppColors.White,
                     contentColor = Color.White,
+                    isExpanded = uiState.isOverdueExpanded,
+                    onHeaderClick = onToggleOverdue,
                     onTodoClick = onTodoClick
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Today Section (only show if there are today todos)
-            if (todayTodos.isNotEmpty()) {
+            // Today Section
+            if (uiState.todayTodos.isNotEmpty()) {
                 TodoSection(
                     title = "Today",
-                    count = todayTodos.size,
-                    todos = todayTodos,
+                    count = uiState.todayTodos.size,
+                    todos = uiState.todayTodos,
                     backgroundColor = Color.White,
                     contentColor = Color.Black,
                     countColor = AppColors.Teal,
+                    isExpanded = uiState.isTodayExpanded,
+                    onHeaderClick = onToggleToday,
                     onTodoClick = onTodoClick
                 )
-            } else if (overdueTodos.isNotEmpty()) {
+            } else if (uiState.showTodayEmptyMessage) {
                 // No todos for today (but there are overdue ones)
                 Box(
                     modifier = Modifier
@@ -114,11 +123,27 @@ fun TodoListContent(
                 }
             }
 
+            // Completed Section
+            if (uiState.completedTodos.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                TodoSection(
+                    title = "Completed",
+                    count = uiState.completedTodos.size,
+                    todos = uiState.completedTodos,
+                    backgroundColor = AppColors.White,
+                    contentColor = Color.Gray,
+                    countColor = Color.Gray,
+                    isExpanded = uiState.isCompletedExpanded,
+                    onHeaderClick = onToggleCompleted,
+                    onTodoClick = onTodoClick
+                )
+            }
+
             Spacer(modifier = Modifier.height(100.dp)) // Space for FAB
         }
 
         // Truly centered empty-state when there are no todos at all.
-        if (todayTodos.isEmpty() && overdueTodos.isEmpty()) {
+        if (uiState.isAllEmpty) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -143,7 +168,7 @@ fun TodoListContent(
     }
 }
 
-// Reusable Header
+
 @Composable
 fun GreetingHeader(
     name: String,
@@ -189,10 +214,12 @@ fun GreetingHeader(
 fun TodoSection(
     title: String,
     count: Int,
-    todos: List<Todo>,
+    todos: List<TodoItemUiState>,
     backgroundColor: Color,
     countColor: Color,
     contentColor: Color,
+    isExpanded: Boolean = true,
+    onHeaderClick: () -> Unit = {},
     onTodoClick: (Todo) -> Unit
 ) {
     Card(
@@ -200,11 +227,13 @@ fun TodoSection(
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(top = 12.dp, start = 12.dp, end = 12.dp, bottom = 4.dp)) {
+        Column(modifier = Modifier.padding(top = 12.dp, start = 12.dp, end = 12.dp, bottom = if (isExpanded) 4.dp else 12.dp)) {
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onHeaderClick() }
             ) {
                 Text(
                     text = title,
@@ -227,14 +256,17 @@ fun TodoSection(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(8.dp))
 
-            todos.forEach { todo ->
-                TodoItem(
-                    todo = todo,
-                    textColor = contentColor,
-                    onClick = { onTodoClick(todo) }
-                )
+                todos.forEach { item ->
+                    TodoItem(
+                        item = item,
+                        textColor = contentColor,
+                        backgroundColor = backgroundColor,
+                        onClick = { onTodoClick(item.todo) }
+                    )
+                }
             }
         }
     }
@@ -242,42 +274,51 @@ fun TodoSection(
 
 @Composable
 fun TodoItem(
-    todo: Todo,
+    item: TodoItemUiState,
     textColor: Color,
-    onClick: (Todo) -> Unit
+    backgroundColor: Color = Color.Transparent,
+    onClick: () -> Unit
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = { onClick(todo) })
+            .clickable(onClick = onClick)
             .padding(vertical = 8.dp)
     ) {
+        val circleColor = if (item.isCompleted) textColor else Color.Transparent
+
         Box(
             modifier = Modifier
                 .size(20.dp)
                 .border(1.5.dp, textColor, CircleShape)
-        )
+                .background(circleColor, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            if (item.isCompleted) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = "Completed",
+                    tint = backgroundColor,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.width(16.dp))
 
         Text(
-            text = todo.title,
+            text = item.title,
             style = Typo.Body,
+            textDecoration = if (item.isCompleted) TextDecoration.LineThrough else null,
             color = textColor
         )
 
         Spacer(modifier = Modifier.weight(1f))
 
-        if (todo.dueTime > 0L) {
-            val cal = Calendar.getInstance().apply { timeInMillis = todo.dueTime }
+        if (item.formattedTime != null) {
             Text(
-                text = String.format(
-                    Locale.getDefault(),
-                    "%02d:%02d",
-                    cal.get(Calendar.HOUR_OF_DAY),
-                    cal.get(Calendar.MINUTE)
-                ),
+                text = item.formattedTime,
                 style = Typo.Time,
                 color = textColor
             )
