@@ -24,12 +24,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +45,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -53,7 +57,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.raven.odyssey.domain.model.Domain
 import com.raven.odyssey.domain.model.HabitFrequency
 import com.raven.odyssey.domain.model.HabitType
-import com.raven.odyssey.ui.theme.AppColors
 
 @Composable
 fun HabitAddMenu(
@@ -79,7 +82,6 @@ fun HabitAddMenu(
         }
     }
 
-    val targetFocusRequester = remember { FocusRequester() }
 
     val scrollState = rememberScrollState()
 
@@ -113,7 +115,7 @@ fun HabitAddMenu(
             value = uiState.name,
             onValueChange = { viewModel.updateUiState(name = it) },
             placeholder = "What habit do you want to build?",
-            textStyle = TextStyle(fontSize = 18.sp, color = Color.Black),
+            textStyle = TextStyle(fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface),
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(nameFocusRequester)
@@ -129,7 +131,7 @@ fun HabitAddMenu(
 //            value = uiState.description,
 //            onValueChange = { viewModel.updateUiState(description = it) },
 //            placeholder = "Description",
-//            textStyle = TextStyle(fontSize = 14.sp, color = Color.Gray),
+//            textStyle = TextStyle(fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant),
 //            modifier = Modifier.fillMaxWidth(),
 //        )
 
@@ -276,19 +278,33 @@ private fun CustomTransparentTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
 ) {
-    Box(modifier = modifier) {
-        if (value.isEmpty()) {
-            Text(text = placeholder, style = textStyle.copy(color = Color.LightGray))
-        }
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            textStyle = textStyle,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = singleLine,
-            keyboardOptions = keyboardOptions,
-            keyboardActions = keyboardActions,
+    val cursorColor = MaterialTheme.colorScheme.primary
+    val selectionColors = remember(cursorColor) {
+        TextSelectionColors(
+            handleColor = cursorColor,
+            backgroundColor = cursorColor.copy(alpha = 0.35f)
         )
+    }
+
+    CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
+        Box(modifier = modifier) {
+            if (value.isEmpty()) {
+                Text(
+                    text = placeholder,
+                    style = textStyle.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                )
+            }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                textStyle = textStyle,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = singleLine,
+                keyboardOptions = keyboardOptions,
+                keyboardActions = keyboardActions,
+                cursorBrush = SolidColor(cursorColor),
+            )
+        }
     }
 }
 
@@ -297,7 +313,7 @@ private fun SectionLabel(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelSmall,
-        color = Color.Gray,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(bottom = 8.dp),
     )
@@ -364,13 +380,13 @@ private fun DomainChoiceChip(
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(if (isSelected) Color.White else domain.color),
+                    .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else domain.color),
             )
             Text(
                 text = domain.name,
                 fontSize = 12.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) Color.White else Color.Black,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f, fill = false),
             )
         }
@@ -397,7 +413,7 @@ private fun FrequencySegmented(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFFF0F0F0))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(0.dp),
     ) {
@@ -407,7 +423,7 @@ private fun FrequencySegmented(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (isSelected) Color.White else Color.Transparent)
+                    .background(if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent)
                     .clickable {
                         when (index) {
                             0 -> onSelect(HabitFrequency.Daily)
@@ -422,7 +438,7 @@ private fun FrequencySegmented(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
@@ -439,12 +455,12 @@ private fun HabitTypeChip(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) Color.Black else Color(0xFFF0F0F0),
+        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         modifier = modifier,
     ) {
         Text(
             text = label,
-            color = if (isSelected) Color.White else Color.Black,
+            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
@@ -465,11 +481,11 @@ private fun SimpleOutlinedInput(
 
     ) {
     Column(modifier = modifier) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            textStyle = TextStyle(fontSize = 16.sp, color = Color.Black),
+            textStyle = TextStyle(fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface),
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
             singleLine = true,
@@ -482,7 +498,7 @@ private fun SimpleOutlinedInput(
                     }
                 }
                 .padding(top = 4.dp)
-                .background(AppColors.White, RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
                 .padding(12.dp)
         )
     }

@@ -19,7 +19,30 @@ object AppColors {
     val Pink = Color(0xFFE369BC)
 
     // Helper colors for backgrounds/text
-    val Background = Color(0xFFF2F1F6)
+    val Background = Color(0xFFECF3F6)
     val White = Color(0xFFFFFFFF)
     val Black = Color(0xFF000000)
+}
+
+/**
+ * Dark palette for Odyssey.
+ *
+ * Keep accent colors consistent for brand, but adjust surfaces/background/text for dark UI.
+ */
+object AppColorsDark {
+    // Accents (can be tweaked later, but safe defaults are same accents)
+    val Purple = AppColors.Purple
+    val Blue = AppColors.Blue
+    val Teal = AppColors.Teal
+    val Yellow = AppColors.Yellow
+    val Red = AppColors.Red
+    val Pink = AppColors.Pink
+
+    // Surfaces / text
+    val Background = Color(0xFF0F141A) // deep blue-gray
+    val Surface = Color(0xFF151B22)    // slightly lighter for cards/sheets if needed
+    val White = Color(0xFFFFFFFF)
+    val Black = Color(0xFF000000)
+    val OnBackground = Color(0xFFE8EEF2)
+    val OnSurface = Color(0xFFE8EEF2)
 }

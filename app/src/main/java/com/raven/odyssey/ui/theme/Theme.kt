@@ -1,8 +1,8 @@
 package com.raven.odyssey.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -12,15 +12,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = AppColorsDark.Purple,
+    secondary = AppColorsDark.Teal,
+    tertiary = AppColorsDark.Pink,
+    background = AppColorsDark.Background,
+    surface = AppColorsDark.Surface,
+    onPrimary = AppColorsDark.White,
+    onSecondary = AppColorsDark.White,
+    onTertiary = AppColorsDark.White,
+    onBackground = AppColorsDark.OnBackground,
+    onSurface = AppColorsDark.OnSurface,
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = AppColors.Purple,
+    secondary = AppColors.Teal,
+    tertiary = AppColors.Pink,
+    background = AppColors.Background,
+    surface = AppColors.White,
+    onPrimary = AppColors.White,
+    onSecondary = AppColors.White,
+    onTertiary = AppColors.White,
+    onBackground = AppColors.Black,
+    onSurface = AppColors.Black,
 
     /* Other default colors to override
     background = Color(0xFFFFFBFE),
@@ -37,10 +51,10 @@ private val LightColorScheme = lightColorScheme(
 fun OdysseyTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
+    val colorScheme: ColorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -50,7 +64,7 @@ fun OdysseyTheme(
     }
 
     MaterialTheme(
-        colorScheme = LightColorScheme,
+        colorScheme = colorScheme,
         typography = Typography,
         content = content
     )

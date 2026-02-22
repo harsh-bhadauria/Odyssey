@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,7 +44,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.raven.odyssey.domain.model.Habit
 import com.raven.odyssey.domain.model.HabitFrequency
 import com.raven.odyssey.domain.model.HabitType
-import com.raven.odyssey.ui.theme.AppColors
 import com.raven.odyssey.ui.theme.Typo
 
 
@@ -56,12 +57,18 @@ fun HabitListScreen(
     val todayHabits = uiState.habits.filter { it.frequency is HabitFrequency.Daily || it.frequency is HabitFrequency.Custom }
     val completedHabits = uiState.completedHabits
 
+    val weeklyBinaryCount = weeklyHabits.count { it.type is HabitType.Binary }
+    val todayBinaryCount = todayHabits.count { it.type is HabitType.Binary }
+
+    val weeklyLastBinaryIndex = weeklyHabits.indexOfLast { it.type is HabitType.Binary }
+    val todayLastBinaryIndex = todayHabits.indexOfLast { it.type is HabitType.Binary }
+
     Box(modifier = Modifier.fillMaxSize()) {
         LazyVerticalStaggeredGrid(
             columns = StaggeredGridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 100.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalItemSpacing = 12.dp
         ) {
             item(span = StaggeredGridItemSpan.FullLine) {
@@ -76,21 +83,28 @@ fun HabitListScreen(
                     Text(
                         text = "This Week",
                         style = Typo.Title,
-                        color = AppColors.Black,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                 }
 
-                items(
+                itemsIndexed(
                     items = weeklyHabits,
-                    key = { it.id },
-                    span = { habit ->
+                    key = { _, habit -> habit.id },
+                    span = { index, habit ->
                         when (habit.type) {
                             is HabitType.Measurable -> StaggeredGridItemSpan.FullLine
-                            is HabitType.Binary -> StaggeredGridItemSpan.SingleLane
+                            is HabitType.Binary -> {
+                                val isLastBinary = index == weeklyLastBinaryIndex
+                                if (weeklyBinaryCount % 2 == 1 && isLastBinary) {
+                                    StaggeredGridItemSpan.FullLine
+                                } else {
+                                    StaggeredGridItemSpan.SingleLane
+                                }
+                            }
                         }
                     }
-                ) { habit ->
+                ) { _, habit ->
                     HabitListItemCard(
                         habit = habit,
                         onAction = {
@@ -112,21 +126,28 @@ fun HabitListScreen(
                     Text(
                         text = "Today",
                         style = Typo.Title,
-                        color = AppColors.Black,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.padding(horizontal = 12.dp)
                     )
                 }
 
-                items(
+                itemsIndexed(
                     items = todayHabits,
-                    key = { it.id },
-                    span = { habit ->
+                    key = { _, habit -> habit.id },
+                    span = { index, habit ->
                         when (habit.type) {
                             is HabitType.Measurable -> StaggeredGridItemSpan.FullLine
-                            is HabitType.Binary -> StaggeredGridItemSpan.SingleLane
+                            is HabitType.Binary -> {
+                                val isLastBinary = index == todayLastBinaryIndex
+                                if (todayBinaryCount % 2 == 1 && isLastBinary) {
+                                    StaggeredGridItemSpan.FullLine
+                                } else {
+                                    StaggeredGridItemSpan.SingleLane
+                                }
+                            }
                         }
                     }
-                ) { habit ->
+                ) { _, habit ->
                     HabitListItemCard(
                         habit = habit,
                         onAction = {
@@ -185,13 +206,13 @@ fun HabitListScreen(
                     Text(
                         text = "No habits due right now",
                         style = Typo.Title,
-                        color = AppColors.Black
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "You're all caught up!",
                         style = Typo.Subtitle,
-                        color = AppColors.Black
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
             }
@@ -226,7 +247,8 @@ fun HabitHeader() {
 
         Text(
             text = "Another day, another day, another day",
-            style = Typo.Subtitle
+            style = Typo.Subtitle,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
         )
 
         Spacer(Modifier.height(12.dp))
@@ -245,21 +267,21 @@ private fun BinaryHabitGridCard(
             .fillMaxWidth()
             .height(64.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onToggleComplete),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 8.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = habit.name,
                 style = Typo.Body,
-                color = AppColors.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
@@ -275,7 +297,7 @@ private fun BinaryHabitGridCard(
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = "Complete",
-                    tint = AppColors.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -310,9 +332,9 @@ fun HabitCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min) // Ensures the button matches the card height
+            .height(IntrinsicSize.Min)
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         Column(
             modifier = Modifier
@@ -329,13 +351,13 @@ fun HabitCard(
                 Text(
                     text = habit.name,
                     style = Typo.Body,
-                    color = AppColors.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Text(
                     text = progressText,
                     style = Typo.Number,
-                    color = AppColors.Black
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -349,7 +371,7 @@ fun HabitCard(
                     .height(8.dp)
                     .clip(CircleShape),
                 color = themeColor,
-                trackColor = AppColors.Background
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
         }
 
@@ -367,7 +389,7 @@ fun HabitCard(
                     is HabitType.Measurable -> "Increment"
                     is HabitType.Binary -> "Complete"
                 },
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(24.dp)
             )
         }

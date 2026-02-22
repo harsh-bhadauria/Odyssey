@@ -1,5 +1,10 @@
 package com.raven.odyssey.ui.screens.todo.list
 
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -13,6 +18,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,10 +38,12 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -46,22 +54,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import android.content.Context
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.raven.odyssey.domain.model.Todo
+import com.raven.odyssey.ui.components.DoodleCelebration
 import com.raven.odyssey.ui.theme.AppColors
 import com.raven.odyssey.ui.theme.Typo
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
 @Composable
 fun TodoListScreen(
@@ -126,27 +130,13 @@ fun TodoListContent(
                     title = "Today",
                     count = uiState.todayTodos.size,
                     todos = uiState.todayTodos,
-                    backgroundColor = Color.White,
-                    contentColor = Color.Black,
+                    backgroundColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     countColor = AppColors.Teal,
                     isExpanded = uiState.isTodayExpanded,
                     onHeaderClick = onToggleToday,
                     onTodoClick = onTodoClick
                 )
-            } else if (uiState.showTodayEmptyMessage) {
-                // No todos for today (but there are overdue ones)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Nothing scheduled for today.",
-                        style = Typo.Subtitle,
-                        color = AppColors.Black
-                    )
-                }
             }
 
             // Completed Section
@@ -156,9 +146,9 @@ fun TodoListContent(
                     title = "Completed",
                     count = uiState.completedTodos.size,
                     todos = uiState.completedTodos,
-                    backgroundColor = AppColors.White,
-                    contentColor = Color.Gray,
-                    countColor = Color.Gray,
+                    backgroundColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                    countColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                     isExpanded = uiState.isCompletedExpanded,
                     onHeaderClick = onToggleCompleted,
                     onTodoClick = onTodoClick,
@@ -181,13 +171,13 @@ fun TodoListContent(
                     Text(
                         text = "Nothing scheduled for today",
                         style = Typo.Title,
-                        color = AppColors.Black
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Add a task, or enjoy the free space.",
                         style = Typo.Subtitle,
-                        color = AppColors.Black
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
             }
@@ -206,7 +196,8 @@ fun GreetingHeader(
     ) {
         Text(
             text = "Howdy, $name!",
-            style = Typo.Headline
+            style = Typo.Headline,
+            color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(4.dp))
 
@@ -231,7 +222,8 @@ fun GreetingHeader(
 
         Text(
             text = annotatedString,
-            style = Typo.Subtitle
+            style = Typo.Subtitle,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
         )
     }
 }
@@ -267,12 +259,16 @@ fun TodoSection(
                 bottom = 12.dp
             )
         ) {
+            val headerInteractionSource = remember { MutableInteractionSource() }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onHeaderClick() }
+                    .clickable(
+                        interactionSource = headerInteractionSource,
+                        indication = null,
+                    ) { onHeaderClick() }
             ) {
                 Text(
                     text = title,
@@ -390,6 +386,7 @@ fun TodoItem(
 ) {
     val scope = rememberCoroutineScope()
     var isChecked by remember(item.id, item.isCompleted) { mutableStateOf(item.isCompleted) }
+    var burstTrigger by remember { mutableIntStateOf(0) }
     val context = LocalContext.current
 
     val fillFraction by animateFloatAsState(
@@ -423,9 +420,12 @@ fun TodoItem(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(12.dp))
             .clickable {
                 isChecked = !isChecked
+                if (isChecked) {
+                    burstTrigger++
+                }
                 performHapticFeedback(context)
                 scope.launch {
                     delay(750)
@@ -447,6 +447,12 @@ fun TodoItem(
                 .background(animatedCircleColor, CircleShape),
             contentAlignment = Alignment.Center
         ) {
+            DoodleCelebration(
+                trigger = burstTrigger,
+                radius = 100f,
+                color = targetFillColor
+            )
+
             if (isChecked) {
                 Icon(
                     imageVector = Icons.Rounded.Check,

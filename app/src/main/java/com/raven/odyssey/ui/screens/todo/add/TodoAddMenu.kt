@@ -23,6 +23,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarToday
@@ -37,6 +39,7 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +52,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -104,7 +108,7 @@ fun TodoAddMenu(
             .wrapContentHeight(),
         shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp),
         shadowElevation = 8.dp,
-        color = Color.White
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp)
@@ -127,7 +131,7 @@ fun TodoAddMenu(
                 value = uiState.title,
                 onValueChange = { viewModel.updateUiState(title = it, error = null) },
                 placeholder = "What would you like to do?",
-                textStyle = TextStyle(fontSize = 18.sp, color = Color.Black),
+                textStyle = TextStyle(fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface),
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(titleFocusRequester)
@@ -145,7 +149,7 @@ fun TodoAddMenu(
                 value = uiState.description,
                 onValueChange = { viewModel.updateUiState(description = it) },
                 placeholder = "Description",
-                textStyle = TextStyle(fontSize = 14.sp, color = Color.Gray),
+                textStyle = TextStyle(fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -233,22 +237,33 @@ fun CustomTransparentTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
 ) {
-    Box(modifier = modifier) {
-        if (value.isEmpty()) {
-            Text(
-                text = placeholder,
-                style = textStyle.copy(color = Color.LightGray)
+    val cursorColor = MaterialTheme.colorScheme.primary
+    val selectionColors = remember(cursorColor) {
+        TextSelectionColors(
+            handleColor = cursorColor,
+            backgroundColor = cursorColor.copy(alpha = 0.35f)
+        )
+    }
+
+    CompositionLocalProvider(LocalTextSelectionColors provides selectionColors) {
+        Box(modifier = modifier) {
+            if (value.isEmpty()) {
+                Text(
+                    text = placeholder,
+                    style = textStyle.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                )
+            }
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                textStyle = textStyle,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = singleLine,
+                keyboardOptions = keyboardOptions,
+                keyboardActions = keyboardActions,
+                cursorBrush = SolidColor(cursorColor),
             )
         }
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            textStyle = textStyle,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = singleLine,
-            keyboardOptions = keyboardOptions,
-            keyboardActions = keyboardActions
-        )
     }
 }
 
@@ -367,13 +382,13 @@ private fun DomainChoiceChip(
                 modifier = Modifier
                     .size(10.dp)
                     .clip(CircleShape)
-                    .background(if (isSelected) Color.White else domain.color),
+                    .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else domain.color),
             )
             Text(
                 text = domain.name,
                 fontSize = 12.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = if (isSelected) Color.White else Color.Black,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f, fill = false),
             )
         }
